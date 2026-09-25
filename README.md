@@ -6,14 +6,25 @@ Gestionale web per organizzare clienti, veicoli, appuntamenti, ordini di lavoro,
 
 Requisiti: Node.js 20 o successivo e PostgreSQL.
 
-1. Copia `.env.example` in `.env` e imposta `DATABASE_URL` e `SESSION_SECRET`.
-2. Crea il database PostgreSQL locale, oppure usa `docker compose up -d db`.
+1. Copia `.env.example` in `.env` e imposta `DATABASE_URL` e `SESSION_SECRET` (ad esempio crea un valore casuale con `openssl rand -hex 32`). Non committare `.env`.
+2. Crea il database PostgreSQL locale, oppure usa `docker compose up -d db`. Il container locale usa autenticazione `trust` soltanto per facilitare lo sviluppo; la porta è esposta solo su localhost e non va usato così in produzione.
 3. Installa le dipendenze con `npm install`.
 4. Applica lo schema con `npm run migrate`.
 5. Crea il primo titolare con `npm run admin:create`.
 6. Avvia il servizio con `npm start` e apri `http://localhost:10000`.
 
 Per la verifica locale esegui `npm test`: i test usano PostgreSQL WASM isolato per applicare lo schema, controllare la ripetibilità della migrazione, la distinzione tra ore-persona e tempo trascorso, e i vincoli di consegna.
+
+## Backup e ripristino PostgreSQL
+
+Il backup applicativo deve includere il database, che contiene anche il logo officina caricato. Con `pg_dump` e `pg_restore` installati, imposta `DATABASE_URL` in una sessione protetta e crea un dump cifrato a riposo secondo la procedura del titolare. Esempio per dump e ripristino controllato:
+
+```sh
+pg_dump --format=custom --no-owner "$DATABASE_URL" --file go-officina.dump
+pg_restore --clean --if-exists --no-owner --dbname "$DATABASE_URL" go-officina.dump
+```
+
+Il ripristino sovrascrive i dati del database di destinazione: provarlo prima su un database separato e interrompere le scritture prima del ripristino di produzione. Conservare copie protette e verificare periodicamente che un dump sia ripristinabile. Le modalità e la retention dei backup gestiti Render dipendono dal database e dal piano scelto in Render.
 
 ## Deploy su Render
 
@@ -35,9 +46,9 @@ Il Blueprint non crea automaticamente un database a pagamento: la risorsa e il p
 
 ## Stato del progetto
 
-Questa prima base applicativa implementa login con sessioni PostgreSQL, dashboard, clienti, veicoli, prenotazioni, presa in carico, ordini di lavoro, operazioni con timer individuali e assegnazione multipla, preventivi versionati con approvazione registrata e PDF, magazzino iniziale, fornitori e ordini di acquisto con ricezione parziale, checklist di qualità, verbale del test su strada, scheda PDF dell’ordine, impostazioni essenziali dell’officina, utenti con ruoli iniziali, documenti gestionali non fiscali, pagamenti parziali e consegna subordinata ai controlli e al saldo.
+Questa prima base applicativa implementa login con sessioni PostgreSQL, dashboard, ricerca globale, clienti, veicoli, prenotazioni, presa in carico, ordini di lavoro, operazioni con timer individuali e assegnazione multipla, preventivi versionati con approvazione registrata e PDF, magazzino iniziale, fornitori e ordini di acquisto con ricezione parziale, checklist di qualità, verbale del test su strada, scheda PDF dell’ordine, dati e logo dell’officina salvati nel database, testi modificabili per condizioni e privacy, utenti con ruoli iniziali, documenti gestionali non fiscali, pagamenti parziali e consegna subordinata ai controlli e al saldo.
 
-Il progetto è in sviluppo e non copre ancora tutto il capitolato. Sono da completare, tra gli altri: prenotazioni con pianificazione visuale e disponibilità risorse, accettazione fotografica e firma, variazioni preventivo e approvazione cliente tramite link, ordini e ricezione fornitori, movimenti completi del magazzino, upload e archiviazione persistente dei file/PDF, personalizzazione completa dei ruoli, portale e comunicazioni al cliente, report ed esportazioni, testi e registri privacy, fatturazione fiscale tramite integrazione esterna e test automatizzati dei flussi con PostgreSQL. Non è dichiarata conformità fiscale o GDPR.
+Il progetto è in sviluppo e non copre ancora tutto il capitolato. Sono da completare, tra gli altri: prenotazioni con pianificazione visuale e disponibilità risorse, accettazione fotografica e firma, variazioni preventivo e approvazione cliente tramite link, riserve e resi di magazzino, archivio persistente dei PDF storici e degli allegati, personalizzazione completa dei ruoli, portale e comunicazioni al cliente, report ed esportazioni, registro e workflow privacy, fatturazione fiscale tramite integrazione esterna e test end-to-end contro PostgreSQL. I PDF sono generati su richiesta ma non archiviati come copie emesse. Non è dichiarata conformità fiscale o GDPR.
 
 ## Sicurezza
 

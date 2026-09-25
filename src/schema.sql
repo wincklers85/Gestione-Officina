@@ -16,6 +16,8 @@ CREATE TABLE IF NOT EXISTS workshop_settings (
   vat_number TEXT NOT NULL DEFAULT '',
   tax_code TEXT NOT NULL DEFAULT '',
   logo_path TEXT NOT NULL DEFAULT '/assets/brand/go-logo.png',
+  logo_data BYTEA,
+  logo_mime TEXT NOT NULL DEFAULT 'image/png',
   hourly_rate NUMERIC(10,2) NOT NULL DEFAULT 55,
   repair_terms TEXT NOT NULL DEFAULT '',
   privacy_notice TEXT NOT NULL DEFAULT '',
@@ -25,6 +27,8 @@ CREATE TABLE IF NOT EXISTS workshop_settings (
 ALTER TABLE workshop_settings ADD COLUMN IF NOT EXISTS repair_terms TEXT NOT NULL DEFAULT '';
 ALTER TABLE workshop_settings ADD COLUMN IF NOT EXISTS privacy_notice TEXT NOT NULL DEFAULT '';
 ALTER TABLE workshop_settings ADD COLUMN IF NOT EXISTS document_prefix TEXT NOT NULL DEFAULT 'GO';
+ALTER TABLE workshop_settings ADD COLUMN IF NOT EXISTS logo_data BYTEA;
+ALTER TABLE workshop_settings ADD COLUMN IF NOT EXISTS logo_mime TEXT NOT NULL DEFAULT 'image/png';
 INSERT INTO workshop_settings (id) VALUES (1) ON CONFLICT (id) DO NOTHING;
 CREATE TABLE IF NOT EXISTS customers (
   id BIGSERIAL PRIMARY KEY,

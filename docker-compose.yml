@@ -4,10 +4,10 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: go
-      POSTGRES_PASSWORD: go
+      POSTGRES_HOST_AUTH_METHOD: trust
       POSTGRES_DB: go_officina
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - go_postgres_data:/var/lib/postgresql/data
 volumes:

@@ -6,3 +6,6 @@
 @media(max-width:700px){.estimate-line{grid-template-columns:1fr 1fr}.estimate-line input[name="line_description"]{grid-column:1/-1}.estimate-line .remove-line{grid-column:1/-1}}
 .actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}.purchase-line{display:grid;grid-template-columns:minmax(200px,1.7fr) minmax(95px,.5fr) minmax(110px,.6fr) auto;gap:9px;align-items:center;margin:10px 0}.purchase-line input,.purchase-line select{min-width:0}
 @media(max-width:760px){.actions{justify-content:flex-start}.purchase-line{grid-template-columns:1fr 1fr}.purchase-line select{grid-column:1/-1}.purchase-line .remove-line{grid-column:1/-1}}
+.top-actions{display:flex;gap:12px;align-items:center}.global-search{display:flex;gap:6px;align-items:center}.global-search input{width:min(31vw,350px);min-height:38px;background:#fff}.logo-upload{margin-top:16px}.logo-upload label{min-width:280px}
+@media(max-width:900px){.top-actions{flex-wrap:wrap;justify-content:flex-end}.global-search input{width:min(56vw,350px)}}
+@media(max-width:600px){.topbar{align-items:flex-start;flex-direction:column}.top-actions{width:100%;justify-content:space-between}.global-search{flex:1}.global-search input{width:100%}.user-chip{display:none}}
