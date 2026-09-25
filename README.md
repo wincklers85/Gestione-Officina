@@ -13,6 +13,8 @@ Requisiti: Node.js 20 o successivo e PostgreSQL.
 5. Crea il primo titolare con `npm run admin:create`.
 6. Avvia il servizio con `npm start` e apri `http://localhost:10000`.
 
+Per la verifica locale esegui `npm test`: i test usano PostgreSQL WASM isolato per applicare lo schema, controllare la ripetibilità della migrazione, la distinzione tra ore-persona e tempo trascorso, e i vincoli di consegna.
+
 ## Deploy su Render
 
 Il file `render.yaml` configura un Render Web Service Node nella regione di Francoforte. Il servizio usa `PORT`, ascolta su `0.0.0.0` e fornisce `/healthz` come health check. Il deploy applica lo schema PostgreSQL prima dell’avvio.
@@ -33,7 +35,7 @@ Il Blueprint non crea automaticamente un database a pagamento: la risorsa e il p
 
 ## Stato del progetto
 
-Questa prima base applicativa implementa login con sessioni PostgreSQL, dashboard, clienti, veicoli, prenotazioni, presa in carico, ordini di lavoro, operazioni con timer individuali e assegnazione multipla, preventivi versionati con approvazione registrata e PDF, magazzino iniziale, checklist di qualità, verbale del test su strada, scheda PDF dell’ordine, impostazioni essenziali dell’officina, utenti con ruoli iniziali, documenti gestionali non fiscali, pagamenti parziali e consegna subordinata ai controlli e al saldo.
+Questa prima base applicativa implementa login con sessioni PostgreSQL, dashboard, clienti, veicoli, prenotazioni, presa in carico, ordini di lavoro, operazioni con timer individuali e assegnazione multipla, preventivi versionati con approvazione registrata e PDF, magazzino iniziale, fornitori e ordini di acquisto con ricezione parziale, checklist di qualità, verbale del test su strada, scheda PDF dell’ordine, impostazioni essenziali dell’officina, utenti con ruoli iniziali, documenti gestionali non fiscali, pagamenti parziali e consegna subordinata ai controlli e al saldo.
 
 Il progetto è in sviluppo e non copre ancora tutto il capitolato. Sono da completare, tra gli altri: prenotazioni con pianificazione visuale e disponibilità risorse, accettazione fotografica e firma, variazioni preventivo e approvazione cliente tramite link, ordini e ricezione fornitori, movimenti completi del magazzino, upload e archiviazione persistente dei file/PDF, personalizzazione completa dei ruoli, portale e comunicazioni al cliente, report ed esportazioni, testi e registri privacy, fatturazione fiscale tramite integrazione esterna e test automatizzati dei flussi con PostgreSQL. Non è dichiarata conformità fiscale o GDPR.
 

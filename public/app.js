@@ -20,4 +20,20 @@ document.addEventListener('DOMContentLoaded',()=>{
       clone.append(remove);root.append(clone);
     });
   }
+  const addPurchaseLine=document.querySelector('#add-purchase-line');
+  if(addPurchaseLine){
+    const root=document.querySelector('#purchase-lines');
+    root?.addEventListener('click',event=>{
+      const remove=event.target.closest('.remove-line');
+      if(remove&&root.querySelectorAll('.purchase-line').length>1)remove.closest('.purchase-line').remove();
+    });
+    addPurchaseLine.addEventListener('click',()=>{
+      const row=root?.querySelector('.purchase-line');
+      if(!row)return;
+      const clone=row.cloneNode(true);
+      clone.querySelector('[name="quantity_ordered"]').value='1';
+      clone.querySelector('[name="unit_cost"]').value='0';
+      root.append(clone);
+    });
+  }
 });
