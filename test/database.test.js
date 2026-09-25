@@ -38,4 +38,9 @@ test('schema is repeatable and protects core workshop records', async t => {
     error => error.code === '23505',
     'un ordine può avere una sola consegna registrata'
   );
+  const version = 'a'.repeat(64);
+  await db.query(`INSERT INTO document_acceptances(work_order_id,customer_id,document_type,document_version,accepted,accepted_by,evidence,user_id) VALUES($1,$2,'repair_terms',$3,true,'Cliente test',$4,$5)`, [order.rows[0].id,customer.rows[0].id,version,JSON.stringify({text_snapshot:'Condizioni di prova'}),user1.rows[0].id]);
+  const acceptance = await db.query(`SELECT document_version,evidence::jsonb AS evidence FROM document_acceptances WHERE work_order_id=$1`, [order.rows[0].id]);
+  assert.equal(acceptance.rows[0].document_version, version);
+  assert.equal(acceptance.rows[0].evidence.text_snapshot, 'Condizioni di prova', 'lo storico conserva la versione del testo accettato');
 });
