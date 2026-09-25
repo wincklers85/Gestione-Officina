@@ -28,6 +28,10 @@ test('schema is repeatable and protects core workshop records', async t => {
   const time = await db.query(`SELECT sum(extract(epoch FROM stopped_at-started_at))::int AS person_seconds,max(extract(epoch FROM stopped_at-started_at))::int AS elapsed_seconds FROM time_entries WHERE operation_id=$1`, [operation.rows[0].id]);
   assert.equal(time.rows[0].person_seconds, 3600, 'due meccanici per 30 minuti fanno un’ora-persona');
   assert.equal(time.rows[0].elapsed_seconds, 1800, 'il tempo di calendario resta 30 minuti');
+  await db.query(`INSERT INTO time_entries(operation_id,user_id,started_at,paused_at,pause_seconds) VALUES($1,$2,'2026-09-25T10:00:00Z','2026-09-25T10:20:00Z',300)`, [operation.rows[0].id,user1.rows[0].id]);
+  const paused = await db.query(`SELECT (extract(epoch FROM paused_at-started_at)-pause_seconds)::int AS person_seconds,extract(epoch FROM paused_at-started_at)::int AS elapsed_seconds FROM time_entries WHERE user_id=$1 AND paused_at IS NOT NULL`, [user1.rows[0].id]);
+  assert.equal(paused.rows[0].person_seconds, 900, 'la pausa non viene conteggiata nel tempo lavorato');
+  assert.equal(paused.rows[0].elapsed_seconds, 1200, 'l’intervallo conserva la durata di calendario');
 
   const timerIndex = await db.query(`SELECT indexdef FROM pg_indexes WHERE indexname='one_active_timer_per_user'`);
   assert.match(timerIndex.rows[0].indexdef, /UNIQUE.*\(user_id\).*stopped_at IS NULL/i, 'lo schema deve dichiarare un solo timer attivo per meccanico');

@@ -13,7 +13,7 @@ Requisiti: Node.js 20 o successivo e PostgreSQL.
 5. Crea il primo titolare con `npm run admin:create`.
 6. Avvia il servizio con `npm start` e apri `http://localhost:10000`.
 
-Per la verifica locale esegui `npm test`: i test usano PostgreSQL WASM isolato per applicare lo schema, controllare la ripetibilità della migrazione, la distinzione tra ore-persona e tempo trascorso, e i vincoli di consegna.
+Per la verifica locale esegui `npm test`: i test usano PostgreSQL WASM isolato per applicare lo schema, controllare la ripetibilità della migrazione, la distinzione tra ore-persona e intervallo di calendario, la sottrazione delle pause, la persistenza del logo e dei testi accettati, e i vincoli di consegna.
 
 ## Backup e ripristino PostgreSQL
 

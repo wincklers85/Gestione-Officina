@@ -1,6 +1,8 @@
 document.addEventListener('DOMContentLoaded',()=>{
   const update=()=>document.querySelectorAll('[data-start]').forEach(node=>{
-    const seconds=Math.max(0,Math.floor((Date.now()-Number(node.dataset.start))/1000));
+    const end=Number(node.dataset.paused)||Date.now();
+    const pausedSeconds=Number(node.dataset.pauseSeconds||0);
+    const seconds=Math.max(0,Math.floor((end-Number(node.dataset.start))/1000)-pausedSeconds);
     node.textContent=[Math.floor(seconds/3600),Math.floor(seconds%3600/60),seconds%60].map(n=>String(n).padStart(2,'0')).join(':');
   });
   update();setInterval(update,1000);
