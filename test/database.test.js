@@ -47,4 +47,18 @@ test('schema is repeatable and protects core workshop records', async t => {
   const acceptance = await db.query(`SELECT document_version,evidence::jsonb AS evidence FROM document_acceptances WHERE work_order_id=$1`, [order.rows[0].id]);
   assert.equal(acceptance.rows[0].document_version, version);
   assert.equal(acceptance.rows[0].evidence.text_snapshot, 'Condizioni di prova', 'lo storico conserva la versione del testo accettato');
+
+  const item = await db.query(`INSERT INTO inventory_items(sku,description,quantity) VALUES('F-1','Filtro prova',4) RETURNING id`);
+  const reservation = await db.query(`INSERT INTO inventory_reservations(item_id,work_order_id,quantity,reserved_by) VALUES($1,$2,2,$3) RETURNING id`, [item.rows[0].id,order.rows[0].id,user1.rows[0].id]);
+  const available = await db.query(`SELECT quantity-coalesce((SELECT sum(quantity) FROM inventory_reservations WHERE item_id=$1 AND status='reserved'),0) AS available FROM inventory_items WHERE id=$1`, [item.rows[0].id]);
+  assert.equal(Number(available.rows[0].available), 2, 'le quantità riservate non risultano disponibili per altre commesse');
+  await db.query(`UPDATE inventory_items SET quantity=quantity-2 WHERE id=$1`, [item.rows[0].id]);
+  await db.query(`UPDATE inventory_reservations SET status='consumed' WHERE id=$1`, [reservation.rows[0].id]);
+  const supplier = await db.query(`INSERT INTO suppliers(name) VALUES('Fornitore test') RETURNING id`);
+  const purchase = await db.query(`INSERT INTO purchase_orders(supplier_id,status,ordered_at) VALUES($1,'ordered',now()) RETURNING id`, [supplier.rows[0].id]);
+  const poLine = await db.query(`INSERT INTO purchase_order_lines(purchase_order_id,item_id,description,quantity_ordered,unit_cost) VALUES($1,$2,'Filtro prova',5,3) RETURNING id`, [purchase.rows[0].id,item.rows[0].id]);
+  await db.query(`UPDATE purchase_order_lines SET quantity_received=2 WHERE id=$1`, [poLine.rows[0].id]);
+  await db.query(`UPDATE inventory_items SET quantity=quantity+2 WHERE id=$1`, [item.rows[0].id]);
+  const stock = await db.query(`SELECT quantity FROM inventory_items WHERE id=$1`, [item.rows[0].id]);
+  assert.equal(Number(stock.rows[0].quantity), 4, 'la ricezione parziale aggiunge soltanto la quantità arrivata');
 });

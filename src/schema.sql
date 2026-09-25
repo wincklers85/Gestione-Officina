@@ -151,6 +151,17 @@ CREATE TABLE IF NOT EXISTS stock_movements (
   user_id BIGINT REFERENCES users(id),
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+CREATE TABLE IF NOT EXISTS inventory_reservations (
+  id BIGSERIAL PRIMARY KEY,
+  item_id BIGINT NOT NULL REFERENCES inventory_items(id),
+  work_order_id BIGINT NOT NULL REFERENCES work_orders(id),
+  quantity NUMERIC(10,2) NOT NULL CHECK (quantity > 0),
+  status TEXT NOT NULL DEFAULT 'reserved' CHECK (status IN ('reserved','consumed','released')),
+  reserved_by BIGINT REFERENCES users(id),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS inventory_reservations_active_item_idx ON inventory_reservations(item_id) WHERE status='reserved';
 CREATE TABLE IF NOT EXISTS suppliers (
   id BIGSERIAL PRIMARY KEY,
   name TEXT NOT NULL,
