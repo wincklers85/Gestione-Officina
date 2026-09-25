@@ -29,7 +29,6 @@ ALTER TABLE workshop_settings ADD COLUMN IF NOT EXISTS privacy_notice TEXT NOT N
 ALTER TABLE workshop_settings ADD COLUMN IF NOT EXISTS document_prefix TEXT NOT NULL DEFAULT 'GO';
 ALTER TABLE workshop_settings ADD COLUMN IF NOT EXISTS logo_data BYTEA;
 ALTER TABLE workshop_settings ADD COLUMN IF NOT EXISTS logo_mime TEXT NOT NULL DEFAULT 'image/png';
-INSERT INTO workshop_settings (id) VALUES (1) ON CONFLICT (id) DO NOTHING;
 CREATE TABLE IF NOT EXISTS customers (
   id BIGSERIAL PRIMARY KEY,
   kind TEXT NOT NULL DEFAULT 'person',
@@ -283,3 +282,121 @@ CREATE TABLE IF NOT EXISTS audit_log (
   details JSONB NOT NULL DEFAULT '{}'::jsonb,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- GO platform tenancy and control plane. Existing single-shop data is moved
+-- into the first workshop; subsequent records are scoped by PostgreSQL RLS.
+CREATE TABLE IF NOT EXISTS workshops (
+  id BIGSERIAL PRIMARY KEY,
+  name TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('pending','active','suspended','declined')),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE TABLE IF NOT EXISTS platform_admins (
+  id BIGSERIAL PRIMARY KEY,
+  username TEXT NOT NULL UNIQUE,
+  password_hash TEXT NOT NULL,
+  active BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  last_login_at TIMESTAMPTZ
+);
+CREATE TABLE IF NOT EXISTS registration_requests (
+  id BIGSERIAL PRIMARY KEY,
+  workshop_name TEXT NOT NULL,
+  owner_name TEXT NOT NULL,
+  email TEXT NOT NULL UNIQUE,
+  phone TEXT NOT NULL DEFAULT '',
+  password_hash TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','approved','declined')),
+  submitted_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  reviewed_at TIMESTAMPTZ,
+  reviewed_by BIGINT REFERENCES platform_admins(id),
+  review_note TEXT NOT NULL DEFAULT ''
+);
+CREATE TABLE IF NOT EXISTS licenses (
+  id BIGSERIAL PRIMARY KEY,
+  workshop_id BIGINT NOT NULL REFERENCES workshops(id) ON DELETE CASCADE,
+  starts_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  expires_at TIMESTAMPTZ NOT NULL,
+  status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active','suspended','expired','cancelled')),
+  created_by BIGINT REFERENCES platform_admins(id),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS licenses_workshop_expiry_idx ON licenses(workshop_id,expires_at DESC);
+ALTER TABLE users ADD COLUMN IF NOT EXISTS last_login_at TIMESTAMPTZ;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS must_change_password BOOLEAN NOT NULL DEFAULT FALSE;
+
+-- Register the existing installation as workshop 1. The single-shop release
+-- remains available while the owner configures the platform superuser.
+INSERT INTO workshops(id,name,status) VALUES(1,'GO Gestione Officina','active') ON CONFLICT(id) DO NOTHING;
+SELECT setval(pg_get_serial_sequence('workshops','id'), greatest((SELECT coalesce(max(id),1) FROM workshops),1), true);
+INSERT INTO licenses(workshop_id,starts_at,expires_at,status)
+SELECT 1,now(),now()+interval '100 years','active'
+WHERE NOT EXISTS (SELECT 1 FROM licenses WHERE workshop_id=1 AND status='active');
+
+-- Add tenant ownership to each existing business record and retain all current
+-- rows under the original workshop. Defaults use the authenticated request's
+-- database context; policy checks reject caller supplied foreign tenant IDs.
+DO $$
+DECLARE t TEXT;
+BEGIN
+  FOREACH t IN ARRAY ARRAY[
+    'users','workshop_settings','customers','vehicles','bookings','work_orders',
+    'work_operations','operation_assignments','time_entries','estimates','estimate_lines',
+    'inventory_items','stock_movements','inventory_reservations','suppliers','purchase_orders',
+    'purchase_order_lines','invoices','invoice_lines','payments','quality_checks','road_tests',
+    'documents','document_acceptances','vehicle_deliveries','audit_log'
+  ] LOOP
+    EXECUTE format('ALTER TABLE %I ADD COLUMN IF NOT EXISTS workshop_id BIGINT',t);
+    EXECUTE format('UPDATE %I SET workshop_id=1 WHERE workshop_id IS NULL',t);
+    EXECUTE format('ALTER TABLE %I ALTER COLUMN workshop_id SET NOT NULL',t);
+    EXECUTE format('ALTER TABLE %I ALTER COLUMN workshop_id SET DEFAULT nullif(current_setting(''app.workshop_id'',true),'''')::bigint',t);
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname=t||'_workshop_id_fkey') THEN
+      EXECUTE format('ALTER TABLE %I ADD CONSTRAINT %I FOREIGN KEY (workshop_id) REFERENCES workshops(id)',t,t||'_workshop_id_fkey');
+    END IF;
+  END LOOP;
+END $$;
+
+-- Settings use (workshop_id, id), so every tenant can keep the existing id=1
+-- convention while the request is isolated by RLS.
+ALTER TABLE workshop_settings DROP CONSTRAINT IF EXISTS workshop_settings_pkey;
+ALTER TABLE workshop_settings ADD PRIMARY KEY (workshop_id,id);
+INSERT INTO workshop_settings(id,workshop_id) VALUES(1,1) ON CONFLICT(workshop_id,id) DO NOTHING;
+
+DO $$
+DECLARE t TEXT;
+BEGIN
+  FOREACH t IN ARRAY ARRAY[
+    'users','workshop_settings','customers','vehicles','bookings','work_orders',
+    'work_operations','operation_assignments','time_entries','estimates','estimate_lines',
+    'inventory_items','stock_movements','inventory_reservations','suppliers','purchase_orders',
+    'purchase_order_lines','invoices','invoice_lines','payments','quality_checks','road_tests',
+    'documents','document_acceptances','vehicle_deliveries','audit_log','licenses'
+  ] LOOP
+    EXECUTE format('ALTER TABLE %I ENABLE ROW LEVEL SECURITY',t);
+    EXECUTE format('ALTER TABLE %I FORCE ROW LEVEL SECURITY',t);
+    EXECUTE format('DROP POLICY IF EXISTS tenant_isolation ON %I',t);
+    EXECUTE format('CREATE POLICY tenant_isolation ON %I USING (current_setting(''app.platform_admin'',true)=''true'' OR workshop_id=nullif(current_setting(''app.workshop_id'',true),'''')::bigint) WITH CHECK (current_setting(''app.platform_admin'',true)=''true'' OR workshop_id=nullif(current_setting(''app.workshop_id'',true),'''')::bigint)',t);
+  END LOOP;
+END $$;
+ALTER TABLE workshops ENABLE ROW LEVEL SECURITY;
+ALTER TABLE workshops FORCE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS tenant_isolation ON workshops;
+CREATE POLICY tenant_isolation ON workshops
+  USING (current_setting('app.platform_admin',true)='true' OR id=nullif(current_setting('app.workshop_id',true),'')::bigint)
+  WITH CHECK (current_setting('app.platform_admin',true)='true' OR id=nullif(current_setting('app.workshop_id',true),'')::bigint);
+
+ALTER TABLE registration_requests ENABLE ROW LEVEL SECURITY;
+ALTER TABLE registration_requests FORCE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS registration_submit ON registration_requests;
+CREATE POLICY registration_submit ON registration_requests
+  FOR INSERT WITH CHECK (status='pending' AND reviewed_by IS NULL AND reviewed_at IS NULL);
+DROP POLICY IF EXISTS registration_admin ON registration_requests;
+CREATE POLICY registration_admin ON registration_requests
+  USING (current_setting('app.platform_admin',true)='true')
+  WITH CHECK (current_setting('app.platform_admin',true)='true');
+ALTER TABLE platform_admins ENABLE ROW LEVEL SECURITY;
+ALTER TABLE platform_admins FORCE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS platform_admin_access ON platform_admins;
+CREATE POLICY platform_admin_access ON platform_admins
+  USING (current_setting('app.platform_admin',true)='true')
+  WITH CHECK (current_setting('app.platform_admin',true)='true');

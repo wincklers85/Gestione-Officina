@@ -35,7 +35,12 @@ Per il primo deploy:
 1. Crea un database Render Postgres nella stessa regione del servizio.
 2. Collega l’**Internal Database URL** del database alla variabile `DATABASE_URL` del servizio. Per collegamenti esterni abilita TLS con `PGSSL=require`; l’URL interno Render può usare la rete privata senza TLS. Non usare il filesystem del Web Service per i dati persistenti: su Render è effimero.
 3. Sincronizza il Blueprint dalla repository e verifica i log di build e deploy.
-4. Crea il primo titolare eseguendo una volta `npm run admin:create` con `DATABASE_URL` collegato al database Render. Non impostare credenziali di default nel codice.
+4. Dopo il primo deploy, apri la Shell del servizio e lancia `npm run superuser:create`. Come nome inserisci `wincklers` e scegli la password privatamente nel prompt. Non inviarla in chat e non salvarla nel codice.
+5. Accedi dalla pagina GO con **Accesso superuser**. Da lì puoi approvare o declinare richieste di registrazione, creare officine, consultare impostazioni e ultimo accesso degli utenti, reimpostare password con cambio obbligatorio al prossimo login, sospendere un’officina e assegnare licenze da 1, 3, 6, 12 o 24 mesi.
+
+Il superuser è un account di piattaforma separato dagli utenti delle officine. Le officine hanno un contesto dati isolato tramite policy PostgreSQL RLS. Le password sono memorizzate con hash bcrypt. La pagina di registrazione pubblica crea soltanto una richiesta in attesa; non assegna un account attivo né una licenza prima dell’approvazione.
+
+Per installazioni preesistenti che richiedono un titolare iniziale nel tenant legacy, `npm run admin:create` resta disponibile dalla Shell con `DATABASE_URL` collegato al database.
 
 Il Blueprint non crea automaticamente un database a pagamento: la risorsa e il piano PostgreSQL vanno scelti dal proprietario in Render prima del deploy. Per produzione non basare dati o documenti sul disco temporaneo del servizio. I PDF generati in questa versione vengono restituiti al browser; l’archiviazione persistente delle copie emesse e degli allegati è da implementare prima dell’uso operativo.
 

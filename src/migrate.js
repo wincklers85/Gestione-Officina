@@ -17,14 +17,17 @@ const pool = new Pool({
 });
 
 (async () => {
+  const client = await pool.connect();
   try {
     const sql = fs.readFileSync(path.join(__dirname, 'schema.sql'), 'utf8');
-    await pool.query(sql);
+    await client.query("SELECT set_config('app.platform_admin','true',false), set_config('app.workshop_id','1',false)");
+    await client.query(sql);
     console.log('Schema GO applicato.');
   } catch (error) {
     console.error('Migrazione non riuscita:', error.message);
     process.exitCode = 1;
   } finally {
+    client.release();
     await pool.end();
   }
 })();

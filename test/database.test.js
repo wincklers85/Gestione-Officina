@@ -8,8 +8,10 @@ test('schema is repeatable and protects core workshop records', async t => {
   t.after(() => db.close());
   const schema = fs.readFileSync('src/schema.sql', 'utf8');
 
+  await db.exec("SELECT set_config('app.platform_admin','true',false), set_config('app.workshop_id','1',false)");
   await db.exec(schema);
   await db.exec(schema);
+  await db.exec("SELECT set_config('app.platform_admin','false',false), set_config('app.workshop_id','1',false)");
   const logoBytes = Buffer.from([137,80,78,71,13,10,26,10]);
   await db.query(`UPDATE workshop_settings SET logo_data=$1,logo_mime='image/png' WHERE id=1`, [logoBytes]);
   const savedLogo = await db.query('SELECT logo_data,logo_mime FROM workshop_settings WHERE id=1');
@@ -61,4 +63,28 @@ test('schema is repeatable and protects core workshop records', async t => {
   await db.query(`UPDATE inventory_items SET quantity=quantity+2 WHERE id=$1`, [item.rows[0].id]);
   const stock = await db.query(`SELECT quantity FROM inventory_items WHERE id=$1`, [item.rows[0].id]);
   assert.equal(Number(stock.rows[0].quantity), 4, 'la ricezione parziale aggiunge soltanto la quantità arrivata');
+
+  await db.exec("SELECT set_config('app.platform_admin','true',false)");
+  await db.query(`INSERT INTO workshops(name,status) VALUES('Seconda officina','active')`);
+  const second = await db.query(`SELECT id FROM workshops WHERE name='Seconda officina'`);
+  await db.query(`INSERT INTO licenses(workshop_id,expires_at) VALUES($1,now()+interval '30 days')`,[second.rows[0].id]);
+  await db.query(`INSERT INTO customers(workshop_id,name) VALUES($1,'Cliente seconda officina')`,[second.rows[0].id]);
+  await db.exec('CREATE ROLE go_app');
+  await db.exec('GRANT SELECT,INSERT,UPDATE,DELETE ON ALL TABLES IN SCHEMA public TO go_app');
+  await db.exec('GRANT USAGE,SELECT ON ALL SEQUENCES IN SCHEMA public TO go_app');
+  await db.exec('SET ROLE go_app');
+  await db.exec("SELECT set_config('app.platform_admin','false',false), set_config('app.workshop_id','1',false)");
+  await db.query(`INSERT INTO registration_requests(workshop_name,owner_name,email,password_hash) VALUES('Officina richiesta','Titolare','new-shop@example.test','bcrypt-hash')`);
+  const hiddenRegistrations=await db.query('SELECT id FROM registration_requests');
+  assert.equal(hiddenRegistrations.rowCount,0,'le richieste di registrazione sono visibili solo al superuser');
+  const hiddenPlatformUsers=await db.query('SELECT id FROM platform_admins');
+  assert.equal(hiddenPlatformUsers.rowCount,0,'gli account superuser sono separati dagli account officina');
+  const isolated = await db.query(`SELECT name FROM customers`);
+  assert.equal(isolated.rows.some(row=>row.name==='Cliente seconda officina'),false,'le policy RLS isolano i clienti tra officine');
+  await assert.rejects(
+    db.query(`INSERT INTO customers(workshop_id,name) VALUES($1,'Scrittura incrociata')`,[second.rows[0].id]),
+    error => error.code === '42501',
+    'un’officina non può scrivere dati con il tenant ID di un’altra officina'
+  );
+  await db.exec('RESET ROLE');
 });
