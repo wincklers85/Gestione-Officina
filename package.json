@@ -10,7 +10,7 @@
     "start": "node src/server.js",
     "migrate": "node src/migrate.js",
     "admin:create": "node scripts/create-admin.js",
-    "check": "node --check src/server.js && node --check src/migrate.js && node --check scripts/create-admin.js && node --check test/database.test.js",
+    "check": "node --check src/server.js && node --check src/migrate.js && node --check src/timezone.js && node --check scripts/create-admin.js && node --check test/database.test.js && node --check test/timezone.test.js",
     "test": "node --test"
   },
   "dependencies": {
