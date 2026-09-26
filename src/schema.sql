@@ -165,6 +165,15 @@ CREATE TABLE IF NOT EXISTS customer_action_tokens (
   created_by BIGINT REFERENCES users(id),
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+CREATE TABLE IF NOT EXISTS customer_portal_tokens (
+  id BIGSERIAL PRIMARY KEY,
+  customer_id BIGINT NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
+  token_hash TEXT NOT NULL UNIQUE,
+  expires_at TIMESTAMPTZ NOT NULL,
+  revoked_at TIMESTAMPTZ,
+  created_by BIGINT REFERENCES users(id),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
 CREATE INDEX IF NOT EXISTS customer_action_tokens_estimate_idx ON customer_action_tokens(estimate_id,expires_at);
 CREATE TABLE IF NOT EXISTS estimate_customer_responses (
   id BIGSERIAL PRIMARY KEY,
@@ -410,7 +419,7 @@ DECLARE t TEXT;
 BEGIN
   FOREACH t IN ARRAY ARRAY[
     'users','workshop_settings','workshop_resources','customers','vehicles','bookings','work_orders',
-    'work_operations','operation_assignments','time_entries','time_entry_adjustments','estimates','customer_action_tokens','estimate_customer_responses','estimate_lines',
+    'work_operations','operation_assignments','time_entries','time_entry_adjustments','estimates','customer_action_tokens','customer_portal_tokens','estimate_customer_responses','estimate_lines',
     'inventory_items','stock_movements','inventory_reservations','suppliers','purchase_orders',
     'purchase_order_lines','invoices','invoice_lines','payments','quality_checks','road_tests',
     'documents','document_acceptances','privacy_requests','vehicle_deliveries','audit_log'
@@ -436,7 +445,7 @@ DECLARE t TEXT;
 BEGIN
   FOREACH t IN ARRAY ARRAY[
     'users','workshop_settings','workshop_resources','customers','vehicles','bookings','work_orders',
-    'work_operations','operation_assignments','time_entries','time_entry_adjustments','estimates','customer_action_tokens','estimate_customer_responses','estimate_lines',
+    'work_operations','operation_assignments','time_entries','time_entry_adjustments','estimates','customer_action_tokens','customer_portal_tokens','estimate_customer_responses','estimate_lines',
     'inventory_items','stock_movements','inventory_reservations','suppliers','purchase_orders',
     'purchase_order_lines','invoices','invoice_lines','payments','quality_checks','road_tests',
     'documents','document_acceptances','privacy_requests','vehicle_deliveries','audit_log','licenses'
