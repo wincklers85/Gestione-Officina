@@ -2,6 +2,7 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const { PGlite } = require('@electric-sql/pglite');
+const { listPortalDocuments, getPortalDocument } = require('../src/portal-documents');
 
 test('schema is repeatable and protects core workshop records', async t => {
   const db = new PGlite();
@@ -92,8 +93,24 @@ test('schema is repeatable and protects core workshop records', async t => {
   const savedPdf = await db.query(`SELECT file_name,file_data FROM documents WHERE estimate_id=$1 AND document_type='estimate_pdf'`,[extraEstimate.rows[0].id]);
   assert.equal(savedPdf.rows[0].file_name,'preventivo-v2.pdf','la copia PDF è rintracciabile nella versione del preventivo');
   assert.deepEqual(Buffer.from(savedPdf.rows[0].file_data),archivedPdf,'lo snapshot archiviato mantiene i byte del PDF emesso');
+  const approvedPdf = Buffer.from('%PDF-1.4 preventivo approvato');
+  const approvedDocument = await db.query(`INSERT INTO documents(work_order_id,estimate_id,document_type,file_name,mime_type,file_data) VALUES($1,$2,'estimate_pdf','preventivo-v1.pdf','application/pdf',$3) RETURNING id`,[order.rows[0].id,initialEstimate.rows[0].id,approvedPdf]);
+  const sharedEstimateDocuments = await db.query(listPortalDocuments,[customer.rows[0].id]);
+  assert.equal(sharedEstimateDocuments.rowCount,1,'il portale condivide solo il PDF del preventivo approvato e non la bozza/inviata');
+  assert.equal(sharedEstimateDocuments.rows[0].id,approvedDocument.rows[0].id);
+  assert.equal((await db.query(listPortalDocuments,[String(Number(customer.rows[0].id)+1000)])).rowCount,0,'un cliente non vede documenti di un altro cliente');
+  const portalPdf = await db.query(getPortalDocument,[customer.rows[0].id,approvedDocument.rows[0].id]);
+  assert.deepEqual(Buffer.from(portalPdf.rows[0].file_data),approvedPdf,'il download è limitato a un PDF approvato del cliente');
 
   const invoice = await db.query(`INSERT INTO invoices(work_order_id,invoice_number,status) VALUES($1,'GO-2026-TEST','open') RETURNING id`,[order.rows[0].id]);
+  const invoicePdf = Buffer.from('%PDF-1.4 documento emesso');
+  await db.query(`INSERT INTO documents(work_order_id,invoice_id,document_type,file_name,mime_type,file_data) VALUES($1,$2,'invoice_pdf','GO-2026-TEST.pdf','application/pdf',$3)`,[order.rows[0].id,invoice.rows[0].id,invoicePdf]);
+  const draftInvoice = await db.query(`INSERT INTO invoices(work_order_id,invoice_number,status) VALUES($1,'GO-2026-DRAFT','draft') RETURNING id`,[order.rows[0].id]);
+  const draftPdf = await db.query(`INSERT INTO documents(work_order_id,invoice_id,document_type,file_name,mime_type,file_data) VALUES($1,$2,'invoice_pdf','GO-2026-DRAFT.pdf','application/pdf',$3) RETURNING id`,[order.rows[0].id,draftInvoice.rows[0].id,Buffer.from('%PDF-1.4 bozza')]);
+  const shareableDocuments = await db.query(listPortalDocuments,[customer.rows[0].id]);
+  assert.equal(shareableDocuments.rowCount,2,'il portale aggiunge il documento emesso ma mantiene nascoste le fatture in bozza');
+  assert.ok(shareableDocuments.rows.some(d=>d.document_type==='invoice_pdf'&&d.invoice_number==='GO-2026-TEST'));
+  assert.equal((await db.query(getPortalDocument,[customer.rows[0].id,draftPdf.rows[0].id])).rowCount,0,'il route di download rifiuta una fattura in bozza');
   await db.query(`INSERT INTO invoice_lines(invoice_id,kind,description,quantity,unit_price,vat_rate) VALUES($1,'labor','Manodopera',1,100,22)`,[invoice.rows[0].id]);
   await db.query(`INSERT INTO payments(invoice_id,amount,method) VALUES($1,50,'cash')`,[invoice.rows[0].id]);
   const report = await db.query(`WITH invoice_totals AS (SELECT i.id,i.issue_date,i.status,w.id AS order_id,c.name AS customer,v.plate,coalesce(sum(l.quantity*l.unit_price*(1+l.vat_rate/100)),0)::numeric AS total FROM invoices i JOIN work_orders w ON w.id=i.work_order_id JOIN customers c ON c.id=w.customer_id JOIN vehicles v ON v.id=w.vehicle_id LEFT JOIN invoice_lines l ON l.invoice_id=i.id WHERE i.issue_date BETWEEN CURRENT_DATE-interval '1 day' AND CURRENT_DATE+interval '1 day' GROUP BY i.id,w.id,c.name,v.plate),paid AS (SELECT invoice_id,sum(amount)::numeric AS amount FROM payments GROUP BY invoice_id) SELECT it.*,coalesce(p.amount,0)::numeric AS paid,it.total-coalesce(p.amount,0)::numeric AS due FROM invoice_totals it LEFT JOIN paid p ON p.invoice_id=it.id WHERE it.id=$1`,[invoice.rows[0].id]);
