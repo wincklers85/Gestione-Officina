@@ -308,6 +308,7 @@ CREATE TABLE IF NOT EXISTS documents (
   created_by BIGINT REFERENCES users(id),
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+ALTER TABLE documents ADD COLUMN IF NOT EXISTS estimate_id BIGINT REFERENCES estimates(id);
 CREATE TABLE IF NOT EXISTS document_acceptances (
   id BIGSERIAL PRIMARY KEY,
   work_order_id BIGINT REFERENCES work_orders(id),
