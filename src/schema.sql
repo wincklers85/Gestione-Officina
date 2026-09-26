@@ -477,6 +477,37 @@ CREATE TABLE IF NOT EXISTS warranty_events (
   created_by BIGINT REFERENCES users(id),
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+CREATE TABLE IF NOT EXISTS supplier_return_cases (
+  id BIGSERIAL PRIMARY KEY,
+  supplier_id BIGINT NOT NULL REFERENCES suppliers(id),
+  item_id BIGINT NOT NULL REFERENCES inventory_items(id),
+  purchase_order_id BIGINT REFERENCES purchase_orders(id),
+  quantity NUMERIC(10,2) NOT NULL CHECK (quantity > 0),
+  reason TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'reported' CHECK (status IN ('reported','authorized','shipped','received','replacement_received','refund_received','rejected','closed','cancelled')),
+  supplier_reference TEXT NOT NULL DEFAULT '',
+  tracking_reference TEXT NOT NULL DEFAULT '',
+  supplier_resolution TEXT NOT NULL DEFAULT '',
+  refund_amount NUMERIC(10,2) NOT NULL DEFAULT 0 CHECK (refund_amount >= 0),
+  created_by BIGINT REFERENCES users(id),
+  shipped_at TIMESTAMPTZ,
+  resolved_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS supplier_return_cases_status_idx ON supplier_return_cases(status,created_at DESC);
+CREATE TABLE IF NOT EXISTS supplier_return_events (
+  id BIGSERIAL PRIMARY KEY,
+  supplier_return_case_id BIGINT NOT NULL REFERENCES supplier_return_cases(id),
+  from_status TEXT NOT NULL DEFAULT '',
+  to_status TEXT NOT NULL,
+  note TEXT NOT NULL,
+  supplier_reference TEXT NOT NULL DEFAULT '',
+  tracking_reference TEXT NOT NULL DEFAULT '',
+  refund_amount NUMERIC(10,2) NOT NULL DEFAULT 0,
+  created_by BIGINT REFERENCES users(id),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
 CREATE TABLE IF NOT EXISTS audit_log (
   id BIGSERIAL PRIMARY KEY,
   user_id BIGINT REFERENCES users(id),
@@ -548,7 +579,7 @@ BEGIN
     'work_operations','operation_assignments','work_order_updates','time_entries','time_entry_adjustments','estimates','customer_action_tokens','customer_portal_tokens','estimate_customer_responses','estimate_lines',
     'inventory_items','stock_movements','inventory_reservations','suppliers','purchase_orders',
     'purchase_order_lines','invoices','invoice_lines','payments','quality_checks','road_tests',
-    'documents','document_acceptances','intake_photos','intake_acceptances','customer_screen_sessions','vehicle_reconstructions','privacy_requests','role_module_permissions','vehicle_deliveries','warranty_cases','warranty_events','audit_log'
+    'documents','document_acceptances','intake_photos','intake_acceptances','customer_screen_sessions','vehicle_reconstructions','privacy_requests','role_module_permissions','vehicle_deliveries','warranty_cases','warranty_events','supplier_return_cases','supplier_return_events','audit_log'
   ] LOOP
     EXECUTE format('ALTER TABLE %I ADD COLUMN IF NOT EXISTS workshop_id BIGINT',t);
     EXECUTE format('UPDATE %I SET workshop_id=1 WHERE workshop_id IS NULL',t);
@@ -574,7 +605,7 @@ BEGIN
     'work_operations','operation_assignments','work_order_updates','time_entries','time_entry_adjustments','estimates','customer_action_tokens','customer_portal_tokens','estimate_customer_responses','estimate_lines',
     'inventory_items','stock_movements','inventory_reservations','suppliers','purchase_orders',
     'purchase_order_lines','invoices','invoice_lines','payments','quality_checks','road_tests',
-    'documents','document_acceptances','intake_photos','intake_acceptances','customer_screen_sessions','vehicle_reconstructions','privacy_requests','role_module_permissions','vehicle_deliveries','warranty_cases','warranty_events','audit_log','licenses'
+    'documents','document_acceptances','intake_photos','intake_acceptances','customer_screen_sessions','vehicle_reconstructions','privacy_requests','role_module_permissions','vehicle_deliveries','warranty_cases','warranty_events','supplier_return_cases','supplier_return_events','audit_log','licenses'
   ] LOOP
     EXECUTE format('ALTER TABLE %I ENABLE ROW LEVEL SECURITY',t);
     EXECUTE format('ALTER TABLE %I FORCE ROW LEVEL SECURITY',t);
