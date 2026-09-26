@@ -1,4 +1,36 @@
 document.addEventListener('DOMContentLoaded',()=>{
+  const releaseDialog=document.querySelector('#release-dialog');
+  if(releaseDialog&&typeof releaseDialog.showModal==='function'){
+    const version=releaseDialog.dataset.version;
+    const key=`go.release.seen.${version}`;
+    let alreadySeen=false;
+    try{alreadySeen=localStorage.getItem(key)==='1';}catch{}
+    if(!alreadySeen){
+      releaseDialog.showModal();
+      try{localStorage.setItem(key,'1');}catch{}
+    }
+    releaseDialog.querySelectorAll('[data-dismiss-release]').forEach(button=>button.addEventListener('click',()=>releaseDialog.close()));
+    releaseDialog.addEventListener('click',event=>{if(event.target===releaseDialog)releaseDialog.close();});
+  }
+  const statusNodes=[...document.querySelectorAll('.system-status')];
+  if(statusNodes.length){
+    const setStatus=online=>statusNodes.forEach(node=>{
+      node.dataset.status=online?'online':'offline';
+      const label=node.querySelector('span');
+      if(label)label.textContent=online?'Online':'Offline';
+    });
+    const checkStatus=async()=>{
+      try{
+        const response=await fetch('/healthz',{cache:'no-store',headers:{Accept:'application/json'}});
+        const result=await response.json();
+        setStatus(response.ok&&result.status==='ok');
+      }catch{setStatus(false);}
+    };
+    checkStatus();
+    window.setInterval(checkStatus,30000);
+    window.addEventListener('online',checkStatus);
+    window.addEventListener('offline',()=>setStatus(false));
+  }
   const update=()=>document.querySelectorAll('[data-start]').forEach(node=>{
     const end=Number(node.dataset.paused)||Date.now();
     const pausedSeconds=Number(node.dataset.pauseSeconds||0);
