@@ -20,15 +20,30 @@ const releases = [{
   date: '2026-09-26',
   title: 'Documenti disponibili nel portale cliente',
   changes: [
+    'Il portale cliente permette di aprire i PDF dei preventivi approvati e dei documenti gestionali emessi.',
+    'Scadenza e revoca del link vengono ricontrollate a ogni richiesta; bozze e preventivi non approvati restano riservati.',
+    'Ogni accesso a un documento dal portale viene registrato nel log di audit.'
+  ]
+}, {
+  version: '0.2.0',
+  date: '2026-09-26',
+  title: 'Calendario, timer e strumenti di gestione',
+  changes: [
     'Calendario settimanale delle prenotazioni con durata, assegnazione e controllo delle risorse.',
     'Preventivi versionati, lavori extra e approvazione cliente tramite link protetto.',
     'Timer individuali per meccanico, conteggio ore-persona e rettifiche motivate tracciate.',
     'Magazzino con riserve, movimenti, resi, articoli difettosi e ordini fornitore con ricezioni parziali.',
-    'Archivio PDF per documenti gestionali, report con esportazione CSV e portale cliente essenziale.',
-    'Esportazione dei dati cliente, registro delle richieste privacy e permessi per modulo.',
-    'Portale cliente con accesso protetto ai PDF dei preventivi approvati e dei documenti gestionali emessi.',
-    'Tracciamento degli accessi ai documenti condivisi; bozze e preventivi non approvati restano riservati.',
-    'Pagina Info con cronologia versioni, stato del servizio e attribuzione alla software house.'
+    'Archivio PDF gestionale, report con esportazione CSV e portale cliente con stato e veicoli.',
+    'Esportazione dati cliente, registro richieste privacy, permessi per modulo e pagina Info online/offline.',
+    'Attribuzione della software house a WinLabs Solutions.'
+  ]
+}, {
+  version: '0.1.0',
+  date: '2026-09-25',
+  title: 'Prima versione del gestionale',
+  changes: [
+    'Avvio di GO con accesso officina, dashboard, clienti, veicoli e ordini di lavoro.',
+    'Flusso iniziale per preventivi, timer meccanici, magazzino, documenti gestionali e consegna.'
   ]
 }];
 
