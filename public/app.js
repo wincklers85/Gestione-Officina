@@ -1,4 +1,11 @@
 document.addEventListener('DOMContentLoaded',()=>{
+  const fullscreenButton=document.querySelector('#mechanic-fullscreen');
+  if(fullscreenButton){
+    const label=fullscreenButton.querySelector('span');
+    const refreshFullscreen=()=>{const active=Boolean(document.fullscreenElement);fullscreenButton.setAttribute('aria-label',active?'Esci dallo schermo intero':'Attiva schermo intero');if(label)label.textContent=active?'Esci da schermo intero':'Schermo intero';};
+    fullscreenButton.addEventListener('click',async()=>{try{if(document.fullscreenElement)await document.exitFullscreen();else await document.documentElement.requestFullscreen();}catch{fullscreenButton.title='Lo schermo intero non è supportato da questo browser';}});
+    document.addEventListener('fullscreenchange',refreshFullscreen);refreshFullscreen();
+  }
   const releaseDialog=document.querySelector('#release-dialog');
   if(releaseDialog&&typeof releaseDialog.showModal==='function'){
     const version=releaseDialog.dataset.version;
