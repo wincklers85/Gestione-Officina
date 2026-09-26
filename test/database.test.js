@@ -100,7 +100,7 @@ test('schema is repeatable and protects core workshop records', async t => {
   assert.equal(await reserveEstimateParts(db,partsEstimate.rows[0].id,order.rows[0].id,user1.rows[0].id),1,'l’approvazione riserva gli articoli di magazzino del preventivo');
   const held = await db.query(`SELECT quantity-coalesce((SELECT sum(quantity) FROM inventory_reservations WHERE item_id=$1 AND status='reserved'),0) AS available FROM inventory_items WHERE id=$1`,[catalogItem.rows[0].id]);
   assert.equal(Number(held.rows[0].available),6,'la disponibilità scende quando il preventivo con articolo è approvato');
-  const overEstimate = await db.query(`INSERT INTO estimates(work_order_id,version,estimate_type,status) VALUES($1,4,'extra','draft') RETURNING id`,[order.rows[0].id]);
+  const overEstimate = await db.query(`INSERT INTO estimates(work_order_id,version,estimate_type,status) VALUES($1,4,'extra','approved') RETURNING id`,[order.rows[0].id]);
   await db.query(`INSERT INTO estimate_lines(estimate_id,kind,description,quantity,unit_price,inventory_item_id) VALUES($1,'part','Pastiglie freno',9,25,$2)`,[overEstimate.rows[0].id,catalogItem.rows[0].id]);
   await assert.rejects(reserveEstimateParts(db,overEstimate.rows[0].id,order.rows[0].id,user1.rows[0].id),/Giacenza insufficiente/,'il preventivo non può riservare più pezzi di quelli disponibili');
   assert.equal(Number((await db.query(`SELECT coalesce(sum(quantity),0)::numeric AS quantity FROM inventory_reservations WHERE item_id=$1 AND status='reserved'`,[catalogItem.rows[0].id])).rows[0].quantity),2,'un tentativo non disponibile non altera la riserva esistente');
