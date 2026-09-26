@@ -1,4 +1,11 @@
 # Registro modifiche
+## 0.7.0 — 26/09/2026
+
+- I meccanici possono aggiungere note tecniche e richieste ricambi dalla postazione tablet; una richiesta non scarica né riserva automaticamente la giacenza.
+- Responsabili e accettazione seguono lo stato dei ricambi richiesti: da gestire, ordinato, ricevuto o rifiutato. Le modifiche sono registrate nel log.
+- La postazione tablet filtra gli ordini per stato e mette in evidenza i lavori in attesa ricambi.
+- I permessi configurati per il modulo Lavori valgono anche nell’area tablet.
+
 
 ## 0.6.0 — 26/09/2026
 
