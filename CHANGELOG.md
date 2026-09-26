@@ -1,5 +1,13 @@
 # Registro modifiche
 
+## 0.11.0 — 26/09/2026
+
+- Aggiunta la sezione **Garanzie e rientri** per aprire pratiche collegate agli ordini già consegnati.
+- Ogni pratica conserva difetto riferito, ambito da valutare, scadenza, decisione e soluzione senza riaprire o modificare l’ordine originale.
+- Stati con passaggi controllati: ricevuta, valutazione, approvata, rifiutata, riparazione, risolta e chiusa.
+- Apertura e ogni cambio di stato richiedono una nota; autore, data e passaggio restano in una cronologia non distruttiva e nel registro attività.
+- La sezione è disponibile a titolare, amministratore, responsabile e accettazione; le decisioni e gli aggiornamenti sono riservati a titolare, amministratore e responsabile.
+
 ## 0.10.0 — 26/09/2026
 
 - Nelle righe del preventivo è possibile selezionare un ricambio del magazzino; la descrizione e il prezzo sono presi dal catalogo, mentre quantità, aliquota e importo approvato restano salvati nella versione del preventivo.
