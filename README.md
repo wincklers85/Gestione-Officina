@@ -13,7 +13,7 @@ Requisiti: Node.js 20 o successivo e PostgreSQL.
 5. Crea il primo titolare con `npm run admin:create`.
 6. Avvia il servizio con `npm start` e apri `http://localhost:10000`.
 
-Per la verifica locale esegui `npm test`: i test usano PostgreSQL WASM isolato per applicare lo schema, controllare la ripetibilità della migrazione, la distinzione tra ore-persona e intervallo di calendario, la sottrazione delle pause, la conversione oraria Europe/Rome e i cambi DST, la persistenza del logo e dei testi accettati, e i vincoli di consegna.
+Per la verifica locale esegui `npm test`: i test usano PostgreSQL WASM isolato per applicare lo schema, controllare la ripetibilità dello schema, la distinzione tra ore-persona e intervallo di calendario, pause e rettifiche timer con motivazione, prenotazioni con risorse, preventivi extra e token cliente con scadenza, richieste privacy, movimenti magazzino, la conversione Europe/Rome e i cambi DST, la persistenza del logo e dei testi accettati, e i vincoli di consegna.
 
 ## Backup e ripristino PostgreSQL
 
@@ -42,7 +42,7 @@ Il superuser è un account di piattaforma separato dagli utenti delle officine. 
 
 Per installazioni preesistenti che richiedono un titolare iniziale nel tenant legacy, `npm run admin:create` resta disponibile dalla Shell con `DATABASE_URL` collegato al database.
 
-Il Blueprint non crea automaticamente un database a pagamento: la risorsa e il piano PostgreSQL vanno scelti dal proprietario in Render prima del deploy. Per produzione non basare dati o documenti sul disco temporaneo del servizio. I PDF generati in questa versione vengono restituiti al browser; l’archiviazione persistente delle copie emesse e degli allegati è da implementare prima dell’uso operativo.
+Il Blueprint non crea automaticamente un database a pagamento: la risorsa e il piano PostgreSQL vanno scelti dal proprietario in Render prima del deploy. Per produzione non basare dati o documenti sul disco temporaneo del servizio. Le foto caricate sono nel database; i PDF sono generati su richiesta e le copie emesse non sono ancora archiviate come snapshot storici.
 
 ## Brand assets
 
@@ -51,9 +51,11 @@ Il Blueprint non crea automaticamente un database a pagamento: la risorsa e il p
 
 ## Stato del progetto
 
-Questa prima base applicativa implementa login con sessioni PostgreSQL, dashboard, ricerca globale, clienti, veicoli, prenotazioni, presa in carico con fotografie salvate nel database, registrazione della presa visione con hash di versione e copia dei testi mostrati, ordini di lavoro, operazioni con timer individuali e assegnazione multipla, preventivi versionati con approvazione registrata e PDF, magazzino con riserve e scarichi collegati agli ordini, fornitori e ordini di acquisto con ricezione parziale, checklist di qualità, verbale del test su strada, scheda PDF dell’ordine, dati e logo dell’officina salvati nel database, testi modificabili per condizioni e privacy, utenti con ruoli iniziali, documenti gestionali non fiscali, pagamenti parziali e consegna subordinata ai controlli e al saldo.
+La base applicativa comprende login con sessioni PostgreSQL, dashboard, ricerca globale, clienti e veicoli, prenotazioni in vista settimanale con durata, assegnazione e risorse, presa in carico con fotografie nel database, ordini di lavoro, operazioni con assegnazione multipla e timer separato per meccanico. I timer distinguono ore-persona, intervallo di calendario, ore fatturabili e costo interno; pause e rettifiche motivate sono tracciate in uno storico non distruttivo.
 
-Il progetto è in sviluppo e non copre ancora tutto il capitolato. Sono da completare, tra gli altri: prenotazioni con pianificazione visuale e disponibilità risorse, accettazione fotografica e firma, variazioni preventivo e approvazione cliente tramite link, riserve e resi di magazzino, archivio persistente dei PDF storici e degli allegati, personalizzazione completa dei ruoli, portale e comunicazioni al cliente, report ed esportazioni, registro e workflow privacy, fatturazione fiscale tramite integrazione esterna e test end-to-end contro PostgreSQL. I PDF sono generati su richiesta ma non archiviati come copie emesse. Non è dichiarata conformità fiscale o GDPR.
+Sono disponibili preventivi versionati, variazioni extra e approvazione cliente con link monouso a scadenza, magazzino con riserve, resi, articoli difettosi, conteggio inventario e ordini fornitore con ricezione parziale, checklist qualità, test, documenti gestionali non fiscali, pagamenti e consegna subordinata ai controlli e al saldo. La sezione report filtra i documenti per data ed esporta CSV. Sono presenti l’esportazione JSON della scheda cliente e un registro per tracciare le richieste privacy.
+
+Restano da completare prima di considerarlo un gestionale completo per uso operativo: portale cliente con accesso autenticato allo stato/documenti, invio reale di email/SMS/WhatsApp, archivio immutabile dei PDF emessi con versioni storiche, firma cliente integrata e modulo di accettazione danni più completo, matrice personalizzabile dei permessi, resi collegati a pratiche fornitore/garanzia, esportazione XLSX e report completi su margini e produttività, procedure automatizzate di backup/ripristino, e test end-to-end dei flussi e dei permessi. L’emissione fiscale richiede integrazione con un servizio esterno verificato dall’officina e dal commercialista. Il registro privacy e l’esportazione dati sono strumenti operativi, non adempimenti automatizzati. Non è dichiarata conformità fiscale o GDPR.
 
 ## Sicurezza
 
