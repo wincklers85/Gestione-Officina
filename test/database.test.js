@@ -81,6 +81,11 @@ test('schema is repeatable and protects core workshop records', async t => {
   const quoteWorkflow = await db.query(`SELECT e.estimate_type,t.expires_at>now() AS valid FROM estimates e JOIN customer_action_tokens t ON t.estimate_id=e.id WHERE e.id=$1`,[extraEstimate.rows[0].id]);
   assert.equal(quoteWorkflow.rows[0].estimate_type,'extra','le variazioni restano distinte dal preventivo iniziale');
   assert.equal(quoteWorkflow.rows[0].valid,true,'il link cliente ha una scadenza verificabile');
+  const archivedPdf = Buffer.from('%PDF-1.4 copia preventivo');
+  await db.query(`INSERT INTO documents(work_order_id,estimate_id,document_type,file_name,mime_type,file_data,created_by) VALUES($1,$2,'estimate_pdf','preventivo-v2.pdf','application/pdf',$3,$4)`,[order.rows[0].id,extraEstimate.rows[0].id,archivedPdf,user1.rows[0].id]);
+  const savedPdf = await db.query(`SELECT file_name,file_data FROM documents WHERE estimate_id=$1 AND document_type='estimate_pdf'`,[extraEstimate.rows[0].id]);
+  assert.equal(savedPdf.rows[0].file_name,'preventivo-v2.pdf','la copia PDF è rintracciabile nella versione del preventivo');
+  assert.deepEqual(Buffer.from(savedPdf.rows[0].file_data),archivedPdf,'lo snapshot archiviato mantiene i byte del PDF emesso');
 
   const invoice = await db.query(`INSERT INTO invoices(work_order_id,invoice_number,status) VALUES($1,'GO-2026-TEST','open') RETURNING id`,[order.rows[0].id]);
   await db.query(`INSERT INTO invoice_lines(invoice_id,kind,description,quantity,unit_price,vat_rate) VALUES($1,'labor','Manodopera',1,100,22)`,[invoice.rows[0].id]);
