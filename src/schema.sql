@@ -113,6 +113,21 @@ CREATE TABLE IF NOT EXISTS operation_assignments (
   is_lead BOOLEAN NOT NULL DEFAULT FALSE,
   PRIMARY KEY (operation_id, user_id)
 );
+CREATE TABLE IF NOT EXISTS work_order_updates (
+  id BIGSERIAL PRIMARY KEY,
+  work_order_id BIGINT NOT NULL REFERENCES work_orders(id) ON DELETE CASCADE,
+  operation_id BIGINT REFERENCES work_operations(id) ON DELETE SET NULL,
+  update_type TEXT NOT NULL CHECK (update_type IN ('note','parts_request')),
+  description TEXT NOT NULL,
+  quantity NUMERIC(10,2),
+  request_status TEXT CHECK (request_status IS NULL OR request_status IN ('open','ordered','ready','declined')),
+  created_by BIGINT REFERENCES users(id),
+  resolved_by BIGINT REFERENCES users(id),
+  resolved_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CHECK ((update_type='note' AND quantity IS NULL AND request_status IS NULL) OR (update_type='parts_request' AND quantity>0 AND request_status IS NOT NULL))
+);
+CREATE INDEX IF NOT EXISTS work_order_updates_history_idx ON work_order_updates(work_order_id,created_at DESC);
 CREATE TABLE IF NOT EXISTS time_entries (
   id BIGSERIAL PRIMARY KEY,
   operation_id BIGINT NOT NULL REFERENCES work_operations(id),
@@ -498,7 +513,7 @@ DECLARE t TEXT;
 BEGIN
   FOREACH t IN ARRAY ARRAY[
     'users','workshop_settings','workshop_resources','customers','vehicles','bookings','work_orders',
-    'work_operations','operation_assignments','time_entries','time_entry_adjustments','estimates','customer_action_tokens','customer_portal_tokens','estimate_customer_responses','estimate_lines',
+    'work_operations','operation_assignments','work_order_updates','time_entries','time_entry_adjustments','estimates','customer_action_tokens','customer_portal_tokens','estimate_customer_responses','estimate_lines',
     'inventory_items','stock_movements','inventory_reservations','suppliers','purchase_orders',
     'purchase_order_lines','invoices','invoice_lines','payments','quality_checks','road_tests',
     'documents','document_acceptances','intake_photos','intake_acceptances','customer_screen_sessions','vehicle_reconstructions','privacy_requests','role_module_permissions','vehicle_deliveries','audit_log'
@@ -524,7 +539,7 @@ DECLARE t TEXT;
 BEGIN
   FOREACH t IN ARRAY ARRAY[
     'users','workshop_settings','workshop_resources','customers','vehicles','bookings','work_orders',
-    'work_operations','operation_assignments','time_entries','time_entry_adjustments','estimates','customer_action_tokens','customer_portal_tokens','estimate_customer_responses','estimate_lines',
+    'work_operations','operation_assignments','work_order_updates','time_entries','time_entry_adjustments','estimates','customer_action_tokens','customer_portal_tokens','estimate_customer_responses','estimate_lines',
     'inventory_items','stock_movements','inventory_reservations','suppliers','purchase_orders',
     'purchase_order_lines','invoices','invoice_lines','payments','quality_checks','road_tests',
     'documents','document_acceptances','intake_photos','intake_acceptances','customer_screen_sessions','vehicle_reconstructions','privacy_requests','role_module_permissions','vehicle_deliveries','audit_log','licenses'
