@@ -81,6 +81,12 @@ test('schema is repeatable and protects core workshop records', async t => {
   const quoteWorkflow = await db.query(`SELECT e.estimate_type,t.expires_at>now() AS valid FROM estimates e JOIN customer_action_tokens t ON t.estimate_id=e.id WHERE e.id=$1`,[extraEstimate.rows[0].id]);
   assert.equal(quoteWorkflow.rows[0].estimate_type,'extra','le variazioni restano distinte dal preventivo iniziale');
   assert.equal(quoteWorkflow.rows[0].valid,true,'il link cliente ha una scadenza verificabile');
+  const portalToken = await db.query(`INSERT INTO customer_portal_tokens(customer_id,token_hash,expires_at,created_by) VALUES($1,$2,now()+interval '90 days',$3) RETURNING id`,[customer.rows[0].id,'b'.repeat(64),user1.rows[0].id]);
+  const portalLive = await db.query(`SELECT id FROM customer_portal_tokens WHERE token_hash=$1 AND revoked_at IS NULL AND expires_at>now()`,['b'.repeat(64)]);
+  assert.equal(portalLive.rowCount,1,'il link portale è valido entro la scadenza');
+  await db.query(`UPDATE customer_portal_tokens SET revoked_at=now() WHERE id=$1`,[portalToken.rows[0].id]);
+  const portalRevoked = await db.query(`SELECT id FROM customer_portal_tokens WHERE token_hash=$1 AND revoked_at IS NULL AND expires_at>now()`,['b'.repeat(64)]);
+  assert.equal(portalRevoked.rowCount,0,'un link portale può essere revocato');
   const archivedPdf = Buffer.from('%PDF-1.4 copia preventivo');
   await db.query(`INSERT INTO documents(work_order_id,estimate_id,document_type,file_name,mime_type,file_data,created_by) VALUES($1,$2,'estimate_pdf','preventivo-v2.pdf','application/pdf',$3,$4)`,[order.rows[0].id,extraEstimate.rows[0].id,archivedPdf,user1.rows[0].id]);
   const savedPdf = await db.query(`SELECT file_name,file_data FROM documents WHERE estimate_id=$1 AND document_type='estimate_pdf'`,[extraEstimate.rows[0].id]);
