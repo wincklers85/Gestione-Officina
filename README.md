@@ -61,7 +61,7 @@ Il Blueprint non crea automaticamente un database a pagamento: la risorsa e il p
 
 ## Versioni e software house
 
-La versione corrente è **0.6.0**. Dopo l’accesso, il popup delle novità compare una sola volta per ciascuna versione sul browser utilizzato; le note restano consultabili dalla voce **Info**. La stessa pagina mostra lo stato online/offline del servizio e del database. La software house è [WinLabs Solutions](https://winlabs.onrender.com). La cronologia completa è in [`CHANGELOG.md`](CHANGELOG.md).
+La versione corrente è **0.7.0**. Dopo l’accesso, il popup delle novità compare una sola volta per ciascuna versione sul browser utilizzato; le note restano consultabili dalla voce **Info**. La stessa pagina mostra lo stato online/offline del servizio e del database. La software house è [WinLabs Solutions](https://winlabs.onrender.com). La cronologia completa è in [`CHANGELOG.md`](CHANGELOG.md).
 
 ## Stato del progetto
 
