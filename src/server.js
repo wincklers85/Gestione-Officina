@@ -11,6 +11,23 @@ const path = require('node:path');
 const crypto = require('node:crypto');
 const { AsyncLocalStorage } = require('node:async_hooks');
 const { parseRomeLocal } = require('./timezone');
+const appVersion = require('../package.json').version;
+const softwareHouse = 'WinLabs Solutions';
+const softwareHouseUrl = 'https://winlabs.onrender.com';
+const releases = [{
+  version: appVersion,
+  date: '2026-09-26',
+  title: 'Flussi officina e trasparenza di versione',
+  changes: [
+    'Calendario settimanale delle prenotazioni con durata, assegnazione e controllo delle risorse.',
+    'Preventivi versionati, lavori extra e approvazione cliente tramite link protetto.',
+    'Timer individuali per meccanico, conteggio ore-persona e rettifiche motivate tracciate.',
+    'Magazzino con riserve, movimenti, resi, articoli difettosi e ordini fornitore con ricezioni parziali.',
+    'Archivio PDF per documenti gestionali, report con esportazione CSV e portale cliente essenziale.',
+    'Esportazione dei dati cliente, registro delle richieste privacy e permessi per modulo.',
+    'Pagina Info con cronologia versioni, stato del servizio e attribuzione alla software house.'
+  ]
+}];
 
 const app = express();
 const logoUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 3 * 1024 * 1024, files: 1 } });
@@ -80,12 +97,12 @@ app.use(async(req,res,next)=>{
 app.get('/workshop-logo',needAuth,async(req,res,next)=>{try{const r=await pool.query('SELECT logo_data,logo_mime FROM workshop_settings WHERE id=1');if(!r.rows[0]?.logo_data)return res.sendFile(path.resolve(__dirname,'../assets/brand/go-logo.png'));res.setHeader('Cache-Control','private, max-age=300');res.type(r.rows[0].logo_mime).send(r.rows[0].logo_data);}catch(e){next(e);}});
 app.use('/settings/logo',needAuth,allow('owner','admin'),logoUpload.single('logo'));
 app.use('/work-orders/:id/photos',needAuth,allow('owner','admin','manager','reception','mechanic'),photoUpload.array('photos',8));
-app.use((req,res,next)=>{if(req.session.user?.role==='accountant'){if(req.path==='/')return res.redirect('/invoices');if(!req.path.startsWith('/invoices')&&req.path!=='/logout')return res.status(403).send(page('Accesso limitato','<section class="card"><p>Questo account può consultare solo i documenti contabili autorizzati.</p><a class="button" href="/invoices">Vai a fatture e pagamenti</a></section>',req.session.user,'invoices'));}next();});
+app.use((req,res,next)=>{if(req.session.user?.role==='accountant'){if(req.path==='/')return res.redirect('/invoices');if(!req.path.startsWith('/invoices')&&!['/logout','/info','/healthz'].includes(req.path))return res.status(403).send(page('Accesso limitato','<section class="card"><p>Questo account può consultare solo i documenti contabili autorizzati.</p><a class="button" href="/invoices">Vai a fatture e pagamenti</a></section>',req.session.user,'invoices'));}next();});
 
 const esc = value => String(value ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
 const fmtDate = value => value ? new Intl.DateTimeFormat('it-IT', { dateStyle: 'short', timeZone: 'Europe/Rome' }).format(new Date(value)) : '—';
 const money = value => new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' }).format(Number(value || 0));
-const navIcons = {dashboard:'dashboard',bookings:'calendario',customers:'clienti',vehicles:'veicoli',orders:'lavori',inventory:'ricambi',invoices:'fatture',team:'utenti',settings:'impostazioni',reports:'dashboard'};
+const navIcons = {dashboard:'dashboard',bookings:'calendario',customers:'clienti',vehicles:'veicoli',orders:'lavori',inventory:'ricambi',invoices:'fatture',team:'utenti',settings:'impostazioni',reports:'dashboard',info:'impostazioni'};
 const statuses = {
   checked_in: 'Presa in carico', diagnosis: 'Diagnosi', quote_pending: 'Preventivo da approvare', waiting_parts: 'In attesa ricambi',
   scheduled: 'Programmato', in_progress: 'In lavorazione', quality_check: 'Controllo qualità', testing: 'Test', ready: 'Pronta',
@@ -100,14 +117,15 @@ app.use((req, res, next) => {
   next();
 });
 function page(title, body, user, active = '') {
-  const allNavItems=[['/', 'Panoramica', 'dashboard'], ['/bookings', 'Prenotazioni', 'bookings'], ['/customers', 'Clienti', 'customers'], ['/vehicles', 'Veicoli', 'vehicles'], ['/work-orders', 'Ordini di lavoro', 'orders'], ['/inventory', 'Magazzino', 'inventory'], ['/invoices','Fatture e pagamenti','invoices'], ['/reports','Report','reports'], ['/team', 'Utenti e meccanici', 'team'], ['/settings', 'Impostazioni officina', 'settings']];
+  const allNavItems=[['/', 'Panoramica', 'dashboard'], ['/bookings', 'Prenotazioni', 'bookings'], ['/customers', 'Clienti', 'customers'], ['/vehicles', 'Veicoli', 'vehicles'], ['/work-orders', 'Ordini di lavoro', 'orders'], ['/inventory', 'Magazzino', 'inventory'], ['/invoices','Fatture e pagamenti','invoices'], ['/reports','Report','reports'], ['/team', 'Utenti e meccanici', 'team'], ['/settings', 'Impostazioni officina', 'settings'], ['/info','Info','info']];
   const isPlatformAdmin=user?.role==='superuser';
-  const navItems=isPlatformAdmin?[['/superuser','Officine','dashboard'],['/superuser/registrations','Richieste','bookings']]:user?.role==='accountant'?[['/invoices','Fatture e pagamenti','invoices']]:allNavItems.filter(([, ,key])=>key!=='reports'||['owner','admin','manager','accounting'].includes(user?.role));
+  const navItems=isPlatformAdmin?[['/superuser','Officine','dashboard'],['/superuser/registrations','Richieste','bookings'],['/info','Info','info']]:user?.role==='accountant'?[['/invoices','Fatture e pagamenti','invoices'],['/info','Info','info']]:allNavItems.filter(([, ,key])=>key!=='reports'||['owner','admin','manager','accounting'].includes(user?.role));
   const nav = user ? `<aside class="sidebar"><a class="brand" href="${isPlatformAdmin?'/superuser':'/'}"><img src="/assets/brand/go-logo.png" alt="GO Gestione Officina"></a><nav>
     ${navItems.map(([href,label,key]) => `<a class="nav-link ${active===key?'active':''}" href="${href}"><img src="/assets/icons/${navIcons[key]}.png" alt="" aria-hidden="true">${label}</a>`).join('')}
     </nav><div class="sidebar-foot"><span>${esc(user.name)}</span><form method="post" action="${isPlatformAdmin?'/superuser/logout':'/logout'}"><input type="hidden" name="_csrf" value="${esc(user.csrfToken||'')}"><button class="link-button">Esci</button></form></div></aside>` : '';
   const token = user ? user.csrfToken || '' : '';
-  const content = `<div class="shell ${user?'':'shell-login'}">${nav}<main class="main"><header class="topbar"><div><span class="eyebrow">GO · GESTIONE OFFICINA</span><h1>${esc(title)}</h1></div>${user?`<div class="top-actions"><form class="global-search" method="get" action="/search"><input type="search" name="q" placeholder="Targa, VIN, cliente, telefono, ordine" aria-label="Ricerca globale"><button class="button">Cerca</button></form><div class="user-chip">${esc(user.name)}<span>${esc(user.role)}</span></div></div>`:''}</header>${body}</main></div>`;
+  const releaseDialog=user?`<dialog class="release-dialog" id="release-dialog" data-version="${esc(appVersion)}" aria-labelledby="release-title"><div class="release-dialog-head"><span class="eyebrow">Novità · GO ${esc(appVersion)}</span><button class="release-close" type="button" data-dismiss-release aria-label="Chiudi">×</button></div><h2 id="release-title">${esc(releases[0].title)}</h2><p>In questa versione trovi nuove funzioni per seguire il lavoro dell’officina e consultare le informazioni di sistema.</p><ul>${releases[0].changes.map(change=>`<li>${esc(change)}</li>`).join('')}</ul><div class="release-dialog-foot"><span>Realizzato da <a href="${esc(softwareHouseUrl)}" target="_blank" rel="noopener noreferrer">${esc(softwareHouse)}</a></span><button class="button primary" type="button" data-dismiss-release>Ho capito</button></div></dialog>`:'';
+  const content = `<div class="shell ${user?'':'shell-login'}">${nav}<main class="main"><header class="topbar"><div><span class="eyebrow">GO · GESTIONE OFFICINA</span><h1>${esc(title)}</h1></div>${user?`<div class="top-actions"><span class="system-status" id="system-status" data-status="checking" role="status" aria-live="polite"><i></i><span>Verifica stato…</span></span><form class="global-search" method="get" action="/search"><input type="search" name="q" placeholder="Targa, VIN, cliente, telefono, ordine" aria-label="Ricerca globale"><button class="button">Cerca</button></form><div class="user-chip">${esc(user.name)}<span>${esc(user.role)}</span></div></div>`:''}</header>${body}</main></div>${releaseDialog}`;
   // Forms retrieve their CSRF token from the page-level meta tag.
   return `<!doctype html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="csrf-token" content="${esc(token)}"><title>${esc(title)} · GO Gestione Officina</title><link rel="stylesheet" href="/app.css"><script defer src="/app.js"></script></head><body>${content}</body></html>`;
 }
@@ -124,6 +142,8 @@ function drawWorkshopLogo(pdf, logoData) { try { pdf.image(logoData ? Buffer.fro
 function archivePdf(pdf,req,res,next,meta){const chunks=[];pdf.on('data',chunk=>chunks.push(chunk));pdf.on('error',next);pdf.on('end',async()=>{const data=Buffer.concat(chunks);try{await pool.query(`INSERT INTO documents(work_order_id,invoice_id,estimate_id,document_type,file_name,mime_type,file_data,created_by) VALUES($1,$2,$3,$4,$5,'application/pdf',$6,$7)`,[meta.workOrderId||null,meta.invoiceId||null,meta.estimateId||null,meta.documentType,path.basename(meta.filename),data,req.session.user.id]);res.type('application/pdf').set('Content-Disposition',`inline; filename="${path.basename(meta.filename).replace(/["\\\r\n]/g,'_')}"`).send(data);}catch(error){next(error);}});}
 
 app.get('/healthz', async (_req,res) => { try { await pool.query('SELECT 1'); res.status(200).json({status:'ok'}); } catch { res.status(503).json({status:'database unavailable'}); } });
+app.get('/info',needAuth,(req,res)=>{const changelog=releases.map(release=>`<article class="release-entry"><div class="release-entry-head"><h2>Versione ${esc(release.version)} · ${esc(release.title)}</h2><time datetime="${esc(release.date)}">${new Intl.DateTimeFormat('it-IT',{dateStyle:'long',timeZone:'Europe/Rome'}).format(new Date(`${release.date}T12:00:00Z`))}</time></div><ul>${release.changes.map(change=>`<li>${esc(change)}</li>`).join('')}</ul></article>`).join('');const body=`<section class="card info-summary"><div><span class="muted">Versione installata</span><strong class="version-number">GO ${esc(appVersion)}</strong></div><div><span class="muted">Stato sistema</span><strong class="system-status info-system-status" data-status="checking"><i></i><span>Verifica stato…</span></strong></div><div><span class="muted">Software house</span><strong><a href="${esc(softwareHouseUrl)}" target="_blank" rel="noopener noreferrer">${esc(softwareHouse)}</a></strong></div></section><section class="card"><div class="section-heading"><h2>Registro modifiche</h2><span class="badge">${releases.length} version${releases.length===1?'e':'i'}</span></div>${changelog}</section><p class="muted">Lo stato online verifica la disponibilità dell’applicazione e del database. Se non riesce a contattare il controllo, viene mostrato offline.</p>`;res.send(page('Info e aggiornamenti',body,req.session.user,'info'));});
+app.get('/api/info',(req,res)=>res.json({version:appVersion,softwareHouse,softwareHouseUrl,releases}));
 app.get('/license-expired',(req,res)=>res.status(403).send(page('Licenza non attiva','<section class="card"><h2>Accesso officina sospeso</h2><p>La licenza dell’officina è scaduta o sospesa. Contatta il titolare della piattaforma GO.</p><form method="post" action="/logout">'+formToken(req)+'<button class="button">Esci</button></form></section>')));
 app.get('/password/change',needAuth,(req,res)=>res.send(page('Aggiorna password',`${takeFlash(req)}<section class="card"><p>Per continuare devi sostituire la password temporanea.</p><form method="post" action="/password/change">${formToken(req)}${input('Nuova password (almeno 12 caratteri)','password','password','',true)}${input('Conferma password','confirm','password','',true)}<button class="button primary">Aggiorna password</button></form></section>`,req.session.user)));
 app.post('/password/change',needAuth,async(req,res,next)=>{try{const password=String(req.body.password||'');if(password.length<12||password!==req.body.confirm)throw new Error('Le password devono coincidere e contenere almeno 12 caratteri.');const hash=await bcrypt.hash(password,12);await pool.query('UPDATE users SET password_hash=$1,must_change_password=false WHERE id=$2',[hash,req.session.user.id]);await pool.query("DELETE FROM user_sessions WHERE sess->'user'->>'id'=$1 AND sid<>$2",[String(req.session.user.id),req.sessionID]);req.session.user.mustChangePassword=false;flash(req,'Password aggiornata.');res.redirect('/');}catch(e){flash(req,e.message);res.redirect('/password/change');}});
