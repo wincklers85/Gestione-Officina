@@ -64,6 +64,36 @@ test('schema is repeatable and protects core workshop records', async t => {
   const stock = await db.query(`SELECT quantity FROM inventory_items WHERE id=$1`, [item.rows[0].id]);
   assert.equal(Number(stock.rows[0].quantity), 4, 'la ricezione parziale aggiunge soltanto la quantità arrivata');
 
+  const resource = await db.query(`INSERT INTO workshop_resources(name,resource_type) VALUES('Ponte 1','lift') RETURNING id`);
+  const booking = await db.query(`INSERT INTO bookings(customer_id,vehicle_id,starts_at,reason,status,duration_minutes,resource_id) VALUES($1,$2,'2026-10-01T08:00:00Z','Tagliando','confirmed',90,$3) RETURNING duration_minutes,resource_id`,[customer.rows[0].id,vehicle.rows[0].id,resource.rows[0].id]);
+  assert.equal(booking.rows[0].duration_minutes,90,'la prenotazione conserva durata prevista e risorsa');
+  assert.equal(Number(booking.rows[0].resource_id),Number(resource.rows[0].id));
+
+  const closedTimer = await db.query(`SELECT id FROM time_entries WHERE stopped_at IS NOT NULL ORDER BY id LIMIT 1`);
+  await db.query(`INSERT INTO time_entry_adjustments(time_entry_id,original_seconds,corrected_seconds,original_billable,corrected_billable,reason,changed_by) VALUES($1,1800,1500,true,true,'Correzione verificata',$2)`,[closedTimer.rows[0].id,user1.rows[0].id]);
+  const adjustment = await db.query(`SELECT original_seconds,corrected_seconds,reason FROM time_entry_adjustments WHERE time_entry_id=$1`,[closedTimer.rows[0].id]);
+  assert.equal(adjustment.rows[0].original_seconds,1800,'la rettifica conserva il dato originale');
+  assert.equal(adjustment.rows[0].corrected_seconds,1500,'la rettifica registra il nuovo valore e la motivazione');
+
+  const initialEstimate = await db.query(`INSERT INTO estimates(work_order_id,version,estimate_type,status) VALUES($1,1,'initial','approved') RETURNING id`,[order.rows[0].id]);
+  const extraEstimate = await db.query(`INSERT INTO estimates(work_order_id,version,estimate_type,status) VALUES($1,2,'extra','sent') RETURNING id`,[order.rows[0].id]);
+  await db.query(`INSERT INTO customer_action_tokens(token_hash,estimate_id,expires_at) VALUES($1,$2,now()+interval '1 day')`,['a'.repeat(64),extraEstimate.rows[0].id]);
+  const quoteWorkflow = await db.query(`SELECT e.estimate_type,t.expires_at>now() AS valid FROM estimates e JOIN customer_action_tokens t ON t.estimate_id=e.id WHERE e.id=$1`,[extraEstimate.rows[0].id]);
+  assert.equal(quoteWorkflow.rows[0].estimate_type,'extra','le variazioni restano distinte dal preventivo iniziale');
+  assert.equal(quoteWorkflow.rows[0].valid,true,'il link cliente ha una scadenza verificabile');
+
+  const invoice = await db.query(`INSERT INTO invoices(work_order_id,invoice_number,status) VALUES($1,'GO-2026-TEST','open') RETURNING id`,[order.rows[0].id]);
+  await db.query(`INSERT INTO invoice_lines(invoice_id,kind,description,quantity,unit_price,vat_rate) VALUES($1,'labor','Manodopera',1,100,22)`,[invoice.rows[0].id]);
+  await db.query(`INSERT INTO payments(invoice_id,amount,method) VALUES($1,50,'cash')`,[invoice.rows[0].id]);
+  const report = await db.query(`WITH invoice_totals AS (SELECT i.id,i.issue_date,i.status,w.id AS order_id,c.name AS customer,v.plate,coalesce(sum(l.quantity*l.unit_price*(1+l.vat_rate/100)),0)::numeric AS total FROM invoices i JOIN work_orders w ON w.id=i.work_order_id JOIN customers c ON c.id=w.customer_id JOIN vehicles v ON v.id=w.vehicle_id LEFT JOIN invoice_lines l ON l.invoice_id=i.id WHERE i.issue_date BETWEEN CURRENT_DATE-interval '1 day' AND CURRENT_DATE+interval '1 day' GROUP BY i.id,w.id,c.name,v.plate),paid AS (SELECT invoice_id,sum(amount)::numeric AS amount FROM payments GROUP BY invoice_id) SELECT it.*,coalesce(p.amount,0)::numeric AS paid,it.total-coalesce(p.amount,0)::numeric AS due FROM invoice_totals it LEFT JOIN paid p ON p.invoice_id=it.id WHERE it.id=$1`,[invoice.rows[0].id]);
+  assert.equal(Number(report.rows[0].total),122,'il report calcola il totale comprensivo di IVA');
+  assert.equal(Number(report.rows[0].paid),50,'il report aggrega gli incassi parziali');
+  assert.equal(Number(report.rows[0].due),72,'il report mostra il residuo');
+
+  await db.query(`INSERT INTO privacy_requests(customer_id,request_type,requester,notes) VALUES($1,'export','Cliente test','Richiesta copia dati')`,[customer.rows[0].id]);
+  const privacy = await db.query(`SELECT status FROM privacy_requests WHERE customer_id=$1`,[customer.rows[0].id]);
+  assert.equal(privacy.rows[0].status,'received','le richieste privacy hanno un workflow persistente');
+
   await db.exec("SELECT set_config('app.platform_admin','true',false)");
   await db.query(`INSERT INTO workshops(name,status) VALUES('Seconda officina','active')`);
   const second = await db.query(`SELECT id FROM workshops WHERE name='Seconda officina'`);
