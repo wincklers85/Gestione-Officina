@@ -10,6 +10,12 @@ document.addEventListener('DOMContentLoaded',()=>{
     const button=form.querySelector('button[type="submit"],button:not([type])');
     if(button&&button.dataset.confirm&&!window.confirm(button.dataset.confirm))event.preventDefault();
   }));
+  document.querySelectorAll('[data-copy]').forEach(button=>button.addEventListener('click',async()=>{
+    const input=document.querySelector(button.dataset.copy);
+    if(!input)return;
+    try{await navigator.clipboard.writeText(input.value);button.textContent='Copiato';}
+    catch{input.focus();input.select();document.execCommand('copy');button.textContent='Copiato';}
+  }));
   const addLine=document.querySelector('#add-estimate-line');
   if(addLine){
     addLine.addEventListener('click',()=>{
