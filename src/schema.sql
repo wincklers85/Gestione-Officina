@@ -4,6 +4,7 @@ CREATE TABLE IF NOT EXISTS users (
   email TEXT NOT NULL UNIQUE,
   password_hash TEXT NOT NULL,
   role TEXT NOT NULL DEFAULT 'mechanic',
+  internal_hourly_cost NUMERIC(10,2) NOT NULL DEFAULT 0,
   active BOOLEAN NOT NULL DEFAULT TRUE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -29,6 +30,13 @@ ALTER TABLE workshop_settings ADD COLUMN IF NOT EXISTS privacy_notice TEXT NOT N
 ALTER TABLE workshop_settings ADD COLUMN IF NOT EXISTS document_prefix TEXT NOT NULL DEFAULT 'GO';
 ALTER TABLE workshop_settings ADD COLUMN IF NOT EXISTS logo_data BYTEA;
 ALTER TABLE workshop_settings ADD COLUMN IF NOT EXISTS logo_mime TEXT NOT NULL DEFAULT 'image/png';
+CREATE TABLE IF NOT EXISTS workshop_resources (
+  id BIGSERIAL PRIMARY KEY,
+  name TEXT NOT NULL,
+  resource_type TEXT NOT NULL DEFAULT 'workstation',
+  active BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
 CREATE TABLE IF NOT EXISTS customers (
   id BIGSERIAL PRIMARY KEY,
   kind TEXT NOT NULL DEFAULT 'person',
@@ -60,12 +68,19 @@ CREATE TABLE IF NOT EXISTS bookings (
   customer_id BIGINT NOT NULL REFERENCES customers(id),
   vehicle_id BIGINT NOT NULL REFERENCES vehicles(id),
   starts_at TIMESTAMPTZ NOT NULL,
+  duration_minutes INTEGER NOT NULL DEFAULT 60 CHECK (duration_minutes BETWEEN 15 AND 720),
+  assigned_user_id BIGINT REFERENCES users(id),
+  resource_id BIGINT REFERENCES workshop_resources(id),
   reason TEXT NOT NULL,
   status TEXT NOT NULL DEFAULT 'confirmed',
   notes TEXT NOT NULL DEFAULT '',
   created_by BIGINT REFERENCES users(id),
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS duration_minutes INTEGER NOT NULL DEFAULT 60;
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS assigned_user_id BIGINT REFERENCES users(id);
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS resource_id BIGINT REFERENCES workshop_resources(id);
+CREATE INDEX IF NOT EXISTS bookings_calendar_idx ON bookings(starts_at,status);
 CREATE TABLE IF NOT EXISTS work_orders (
   id BIGSERIAL PRIMARY KEY,
   customer_id BIGINT NOT NULL REFERENCES customers(id),
@@ -104,20 +119,61 @@ CREATE TABLE IF NOT EXISTS time_entries (
   stopped_at TIMESTAMPTZ,
   paused_at TIMESTAMPTZ,
   pause_seconds INTEGER NOT NULL DEFAULT 0,
+  billable BOOLEAN NOT NULL DEFAULT TRUE,
+  bill_rate NUMERIC(10,2) NOT NULL DEFAULT 0,
+  internal_cost_rate NUMERIC(10,2) NOT NULL DEFAULT 0,
+  adjusted_seconds INTEGER,
   note TEXT NOT NULL DEFAULT '',
   correction_reason TEXT NOT NULL DEFAULT ''
 );
 CREATE UNIQUE INDEX IF NOT EXISTS one_active_timer_per_user ON time_entries(user_id) WHERE stopped_at IS NULL;
 ALTER TABLE time_entries ADD COLUMN IF NOT EXISTS paused_at TIMESTAMPTZ;
+ALTER TABLE time_entries ADD COLUMN IF NOT EXISTS billable BOOLEAN NOT NULL DEFAULT TRUE;
+ALTER TABLE time_entries ADD COLUMN IF NOT EXISTS bill_rate NUMERIC(10,2) NOT NULL DEFAULT 0;
+ALTER TABLE time_entries ADD COLUMN IF NOT EXISTS internal_cost_rate NUMERIC(10,2) NOT NULL DEFAULT 0;
+ALTER TABLE time_entries ADD COLUMN IF NOT EXISTS adjusted_seconds INTEGER;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS internal_hourly_cost NUMERIC(10,2) NOT NULL DEFAULT 0;
+CREATE TABLE IF NOT EXISTS time_entry_adjustments (
+  id BIGSERIAL PRIMARY KEY,
+  time_entry_id BIGINT NOT NULL REFERENCES time_entries(id),
+  original_seconds INTEGER,
+  corrected_seconds INTEGER,
+  original_billable BOOLEAN,
+  corrected_billable BOOLEAN,
+  reason TEXT NOT NULL,
+  changed_by BIGINT REFERENCES users(id),
+  changed_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
 CREATE TABLE IF NOT EXISTS estimates (
   id BIGSERIAL PRIMARY KEY,
   work_order_id BIGINT NOT NULL REFERENCES work_orders(id),
   version INTEGER NOT NULL DEFAULT 1,
+  estimate_type TEXT NOT NULL DEFAULT 'initial',
   status TEXT NOT NULL DEFAULT 'draft',
   valid_until DATE,
   notes TEXT NOT NULL DEFAULT '',
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE (work_order_id, version)
+);
+ALTER TABLE estimates ADD COLUMN IF NOT EXISTS estimate_type TEXT NOT NULL DEFAULT 'initial';
+CREATE TABLE IF NOT EXISTS customer_action_tokens (
+  id BIGSERIAL PRIMARY KEY,
+  token_hash TEXT NOT NULL UNIQUE,
+  estimate_id BIGINT NOT NULL REFERENCES estimates(id) ON DELETE CASCADE,
+  expires_at TIMESTAMPTZ NOT NULL,
+  used_at TIMESTAMPTZ,
+  created_by BIGINT REFERENCES users(id),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS customer_action_tokens_estimate_idx ON customer_action_tokens(estimate_id,expires_at);
+CREATE TABLE IF NOT EXISTS estimate_customer_responses (
+  id BIGSERIAL PRIMARY KEY,
+  estimate_id BIGINT NOT NULL REFERENCES estimates(id),
+  decision TEXT NOT NULL CHECK (decision IN ('approved','rejected')),
+  responded_by TEXT NOT NULL,
+  estimate_version INTEGER NOT NULL,
+  responded_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  evidence JSONB NOT NULL DEFAULT '{}'::jsonb
 );
 CREATE TABLE IF NOT EXISTS estimate_lines (
   id BIGSERIAL PRIMARY KEY,
@@ -264,6 +320,18 @@ CREATE TABLE IF NOT EXISTS document_acceptances (
   accepted_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   user_id BIGINT REFERENCES users(id)
 );
+CREATE TABLE IF NOT EXISTS privacy_requests (
+  id BIGSERIAL PRIMARY KEY,
+  customer_id BIGINT REFERENCES customers(id),
+  request_type TEXT NOT NULL CHECK (request_type IN ('access','export','rectification','deletion','restriction','objection','other')),
+  requester TEXT NOT NULL,
+  notes TEXT NOT NULL DEFAULT '',
+  status TEXT NOT NULL DEFAULT 'received' CHECK (status IN ('received','in_review','completed','rejected')),
+  received_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  due_at DATE,
+  completed_at TIMESTAMPTZ,
+  handled_by BIGINT REFERENCES users(id)
+);
 CREATE TABLE IF NOT EXISTS vehicle_deliveries (
   id BIGSERIAL PRIMARY KEY,
   work_order_id BIGINT NOT NULL UNIQUE REFERENCES work_orders(id),
@@ -340,11 +408,11 @@ DO $$
 DECLARE t TEXT;
 BEGIN
   FOREACH t IN ARRAY ARRAY[
-    'users','workshop_settings','customers','vehicles','bookings','work_orders',
-    'work_operations','operation_assignments','time_entries','estimates','estimate_lines',
+    'users','workshop_settings','workshop_resources','customers','vehicles','bookings','work_orders',
+    'work_operations','operation_assignments','time_entries','time_entry_adjustments','estimates','customer_action_tokens','estimate_customer_responses','estimate_lines',
     'inventory_items','stock_movements','inventory_reservations','suppliers','purchase_orders',
     'purchase_order_lines','invoices','invoice_lines','payments','quality_checks','road_tests',
-    'documents','document_acceptances','vehicle_deliveries','audit_log'
+    'documents','document_acceptances','privacy_requests','vehicle_deliveries','audit_log'
   ] LOOP
     EXECUTE format('ALTER TABLE %I ADD COLUMN IF NOT EXISTS workshop_id BIGINT',t);
     EXECUTE format('UPDATE %I SET workshop_id=1 WHERE workshop_id IS NULL',t);
@@ -366,11 +434,11 @@ DO $$
 DECLARE t TEXT;
 BEGIN
   FOREACH t IN ARRAY ARRAY[
-    'users','workshop_settings','customers','vehicles','bookings','work_orders',
-    'work_operations','operation_assignments','time_entries','estimates','estimate_lines',
+    'users','workshop_settings','workshop_resources','customers','vehicles','bookings','work_orders',
+    'work_operations','operation_assignments','time_entries','time_entry_adjustments','estimates','customer_action_tokens','estimate_customer_responses','estimate_lines',
     'inventory_items','stock_movements','inventory_reservations','suppliers','purchase_orders',
     'purchase_order_lines','invoices','invoice_lines','payments','quality_checks','road_tests',
-    'documents','document_acceptances','vehicle_deliveries','audit_log','licenses'
+    'documents','document_acceptances','privacy_requests','vehicle_deliveries','audit_log','licenses'
   ] LOOP
     EXECUTE format('ALTER TABLE %I ENABLE ROW LEVEL SECURITY',t);
     EXECUTE format('ALTER TABLE %I FORCE ROW LEVEL SECURITY',t);
