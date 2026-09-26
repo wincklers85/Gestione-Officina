@@ -49,6 +49,10 @@ Il Blueprint non crea automaticamente un database a pagamento: la risorsa e il p
 - `assets/brand/go-logo.png` – logo GO.
 - `assets/icons/` – icone funzionali individuali e anteprima.
 
+## Versioni e software house
+
+La versione corrente è **0.2.0**. Dopo l’accesso, il popup delle novità compare una sola volta per ciascuna versione sul browser utilizzato; le note restano consultabili dalla voce **Info**. La stessa pagina mostra lo stato online/offline del servizio e del database. La software house è [WinLabs Solutions](https://winlabs.onrender.com). La cronologia completa è in [`CHANGELOG.md`](CHANGELOG.md).
+
 ## Stato del progetto
 
 La base applicativa comprende login con sessioni PostgreSQL, dashboard, ricerca globale, clienti e veicoli, prenotazioni in vista settimanale con durata, assegnazione e risorse, presa in carico con fotografie nel database, ordini di lavoro, operazioni con assegnazione multipla e timer separato per meccanico. I timer distinguono ore-persona, intervallo di calendario, ore fatturabili e costo interno; pause e rettifiche motivate sono tracciate in uno storico non distruttivo.
