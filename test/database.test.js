@@ -3,6 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const { PGlite } = require('@electric-sql/pglite');
 const { listPortalDocuments, getPortalDocument } = require('../src/portal-documents');
+const { selectExteriorSequence } = require('../src/photo-sequence');
 
 test('schema is repeatable and protects core workshop records', async t => {
   const db = new PGlite();
@@ -26,26 +27,17 @@ test('schema is repeatable and protects core workshop records', async t => {
   const stations = ['front','front_right','right','rear_right','rear','rear_left','left','front_left'];
   const photoBytes = Buffer.from([137,80,78,71,13,10,26,10,1,2,3]);
   for (const station of stations) {
-    for (let take=0;take<3;take++) {
-      const doc=await db.query(`INSERT INTO documents(work_order_id,document_type,file_name,mime_type,file_data) VALUES($1,'vehicle_photo',$2,'image/png',$3) RETURNING id`,[order.rows[0].id,`${station}-${take}.png`,photoBytes]);
-      await db.query(`INSERT INTO intake_photos(work_order_id,document_id,category,station,damage_marks) VALUES($1,$2,'exterior',$3,$4::jsonb)`,[order.rows[0].id,doc.rows[0].id,station,JSON.stringify(take===0?[{x:.42,y:.31}]:[])]);
-    }
+    const doc=await db.query(`INSERT INTO documents(work_order_id,document_type,file_name,mime_type,file_data) VALUES($1,'vehicle_photo',$2,'image/png',$3) RETURNING id`,[order.rows[0].id,`${station}.png`,photoBytes]);
+    await db.query(`INSERT INTO intake_photos(work_order_id,document_id,category,station,damage_marks) VALUES($1,$2,'exterior',$3,'[]'::jsonb)`,[order.rows[0].id,doc.rows[0].id,station]);
   }
   for(const [category,station] of [['interior','interior_front'],['dashboard','dashboard']]){
     const doc=await db.query(`INSERT INTO documents(work_order_id,document_type,file_name,mime_type,file_data) VALUES($1,'vehicle_photo',$2,'image/png',$3) RETURNING id`,[order.rows[0].id,`${station}.png`,photoBytes]);
     await db.query(`INSERT INTO intake_photos(work_order_id,document_id,category,station) VALUES($1,$2,$3,$4)`,[order.rows[0].id,doc.rows[0].id,category,station]);
   }
-  const exteriorCoverage=await db.query(`SELECT count(*)::int AS count,count(DISTINCT station)::int AS stations FROM intake_photos WHERE work_order_id=$1 AND category='exterior'`,[order.rows[0].id]);
-  assert.equal(exteriorCoverage.rows[0].count,24,'la ricostruzione usa tutte le foto esterne');
-  assert.equal(exteriorCoverage.rows[0].stations,8,'le otto aree esterne risultano coperte');
-  const reconstruction=await db.query(`INSERT INTO vehicle_reconstructions(work_order_id,input_photo_count,queued_by) VALUES($1,24,$2) RETURNING id,status`,[order.rows[0].id,user1.rows[0].id]);
-  assert.equal(reconstruction.rows[0].status,'queued','l’elaborazione fotogrammetrica è accodata, non blocca la presa in carico');
-  await db.query(`UPDATE vehicle_reconstructions SET status='running',started_at=now() WHERE id=$1`,[reconstruction.rows[0].id]);
-  const glb=Buffer.concat([Buffer.from('glTF'),Buffer.alloc(1020)]);
-  await db.query(`UPDATE vehicle_reconstructions SET status='complete',result_glb=$1,completed_at=now() WHERE id=$2`,[glb,reconstruction.rows[0].id]);
-  const savedModel=await db.query(`SELECT status,result_glb FROM vehicle_reconstructions WHERE id=$1`,[reconstruction.rows[0].id]);
-  assert.equal(savedModel.rows[0].status,'complete');
-  assert.deepEqual(Buffer.from(savedModel.rows[0].result_glb),glb,'il GLB elaborato resta persistente nel database');
+  const exteriorRows=await db.query(`SELECT id,category,station FROM intake_photos WHERE work_order_id=$1 ORDER BY id`,[order.rows[0].id]);
+  const sequence=selectExteriorSequence(exteriorRows.rows);
+  assert.equal(sequence.complete,true,'gli otto punti esterni abilitano la sequenza foto');
+  assert.equal(sequence.photos.length,8,'interni e cruscotto restano fuori dalla sequenza');
   const operation = await db.query(`INSERT INTO work_operations(work_order_id,title) VALUES($1,'Prova timer') RETURNING id`, [order.rows[0].id]);
 
   const start = '2026-09-25T09:00:00Z';

@@ -379,6 +379,7 @@ CREATE TABLE IF NOT EXISTS customer_screen_sessions (
   completed_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+-- Legacy tables retained for compatibility with existing databases; the Labs photo sequence does not use them.
 CREATE TABLE IF NOT EXISTS vehicle_reconstructions (
   id BIGSERIAL PRIMARY KEY,
   work_order_id BIGINT NOT NULL REFERENCES work_orders(id) ON DELETE CASCADE,

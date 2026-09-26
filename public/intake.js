@@ -158,29 +158,21 @@
 
   const viewerButton = q('#view-360');
   viewerButton?.addEventListener('click', () => {
-    const photos = qa('.intake-photo').map(a => ({ src: q('img', a).src, label: q('span', a).textContent })).filter(p => !/interni|cruscotto/i.test(p.label));
-    if (!photos.length) return;
+    const photos = qa('.intake-photo[data-sequence="true"]')
+      .sort((a, b) => Number(a.dataset.sequenceOrder) - Number(b.dataset.sequenceOrder))
+      .map(a => ({ src: q('img', a).src, label: q('span', a).textContent }));
+    if (photos.length < 8) return;
     const stage = q('#view360-stage'), slider = q('#view360-slider'), modal = q('#view360-modal');
     slider.max = String(photos.length - 1);
-    const show = index => { stage.innerHTML = `<img src="${photos[index].src}" alt="${photos[index].label}"><strong>${photos[index].label}</strong>`; };
-    slider.addEventListener('input', () => show(Number(slider.value)), { once: false }); show(0); modal.hidden = false;
+    const show = index => {
+      const photo = photos[index];
+      stage.innerHTML = `<img src="${photo.src}" alt="${photo.label}"><strong>Scatto ${index + 1} di ${photos.length} · ${photo.label}</strong>`;
+    };
+    slider.oninput = () => show(Number(slider.value));
+    slider.value = '0';
+    show(0);
+    modal.hidden = false;
   });
   q('#close-360')?.addEventListener('click', () => { q('#view360-modal').hidden = true; });
-  const reconstruction = q('.reconstruction-panel');
-  const reconstructionState = q('.reconstruction-state', reconstruction || document);
-  if (reconstruction && reconstructionState && ['queued','running'].includes(reconstructionState.dataset.status)) {
-    const orderId = reconstruction.dataset.workOrder;
-    const stageNames = { queued:'in attesa', preparing:'preparazione foto', aligning:'ricerca dettagli', matching:'abbinamento scatti', 'camera-solving':'allineamento fotocamere', 'image-preparation':'preparazione scena', 'scene-import':'importazione scena', 'dense-reconstruction':'ricostruzione geometria', 'mesh-generation':'creazione mesh', 'mesh-refinement':'rifinitura mesh', texturing:'applicazione texture', 'glb-export':'esportazione modello' };
-    const timer = setInterval(async () => {
-      try {
-        const response = await fetch(`/tablet/work-orders/${orderId}/reconstruction/status`, { credentials: 'same-origin' });
-        if (!response.ok) return;
-        const result = await response.json();
-        reconstructionState.dataset.status = result.status;
-        if (result.status === 'complete' || result.status === 'failed') { clearInterval(timer); window.location.reload(); }
-        else reconstructionState.innerHTML = `Stato: <strong>${result.status === 'queued' ? 'In coda' : 'Ricostruzione in corso'}</strong> · Fase: ${stageNames[result.current_stage] || 'elaborazione'} · ${result.input_photo_count} foto${result.worker_online ? '' : ' · Worker offline'} `;
-      } catch { /* la pagina resta consultabile; riprova al prossimo intervallo */ }
-    }, 5000);
-  }
   window.addEventListener('pagehide', () => stream?.getTracks().forEach(track => track.stop()));
 })();

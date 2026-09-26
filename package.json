@@ -1,6 +1,6 @@
 {
   "name": "go-gestione-officina",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "private": true,
   "description": "Gestionale web per officina meccanica, predisposto per Render e PostgreSQL.",
   "engines": {
@@ -11,7 +11,7 @@
     "migrate": "node src/migrate.js",
     "admin:create": "node scripts/create-admin.js",
     "superuser:create": "node scripts/create-superuser.js",
-    "check": "node --check src/server.js && node --check src/migrate.js && node --check src/timezone.js && node --check src/portal-documents.js && node --check scripts/create-admin.js && node --check scripts/create-superuser.js && node --check test/database.test.js && node --check test/timezone.test.js",
+    "check": "node --check src/server.js && node --check public/intake.js && node --check src/migrate.js && node --check src/timezone.js && node --check src/portal-documents.js && node --check src/photo-sequence.js && node --check scripts/create-admin.js && node --check scripts/create-superuser.js && node --check test/database.test.js && node --check test/photo-sequence.test.js && node --check test/timezone.test.js",
     "test": "node --test"
   },
   "dependencies": {
