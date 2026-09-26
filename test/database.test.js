@@ -4,6 +4,7 @@ const fs = require('node:fs');
 const { PGlite } = require('@electric-sql/pglite');
 const { listPortalDocuments, getPortalDocument } = require('../src/portal-documents');
 const { selectExteriorSequence } = require('../src/photo-sequence');
+const { reserveEstimateParts, consumeInvoiceParts } = require('../src/inventory-billing');
 
 test('schema is repeatable and protects core workshop records', async t => {
   const db = new PGlite();
@@ -93,6 +94,32 @@ test('schema is repeatable and protects core workshop records', async t => {
   const stock = await db.query(`SELECT quantity FROM inventory_items WHERE id=$1`, [item.rows[0].id]);
   assert.equal(Number(stock.rows[0].quantity), 4, 'la ricezione parziale aggiunge soltanto la quantità arrivata');
 
+  const catalogItem = await db.query(`INSERT INTO inventory_items(sku,description,unit_price,quantity) VALUES('BR-1','Pastiglie freno',25,8) RETURNING id`);
+  const partsEstimate = await db.query(`INSERT INTO estimates(work_order_id,version,estimate_type,status) VALUES($1,3,'extra','approved') RETURNING id`,[order.rows[0].id]);
+  await db.query(`INSERT INTO estimate_lines(estimate_id,kind,description,quantity,unit_price,inventory_item_id) VALUES($1,'part','Pastiglie freno',2,25,$2)`,[partsEstimate.rows[0].id,catalogItem.rows[0].id]);
+  assert.equal(await reserveEstimateParts(db,partsEstimate.rows[0].id,order.rows[0].id,user1.rows[0].id),1,'l’approvazione riserva gli articoli di magazzino del preventivo');
+  const held = await db.query(`SELECT quantity-coalesce((SELECT sum(quantity) FROM inventory_reservations WHERE item_id=$1 AND status='reserved'),0) AS available FROM inventory_items WHERE id=$1`,[catalogItem.rows[0].id]);
+  assert.equal(Number(held.rows[0].available),6,'la disponibilità scende quando il preventivo con articolo è approvato');
+  const overEstimate = await db.query(`INSERT INTO estimates(work_order_id,version,estimate_type,status) VALUES($1,4,'extra','draft') RETURNING id`,[order.rows[0].id]);
+  await db.query(`INSERT INTO estimate_lines(estimate_id,kind,description,quantity,unit_price,inventory_item_id) VALUES($1,'part','Pastiglie freno',9,25,$2)`,[overEstimate.rows[0].id,catalogItem.rows[0].id]);
+  await assert.rejects(reserveEstimateParts(db,overEstimate.rows[0].id,order.rows[0].id,user1.rows[0].id),/Giacenza insufficiente/,'il preventivo non può riservare più pezzi di quelli disponibili');
+  assert.equal(Number((await db.query(`SELECT coalesce(sum(quantity),0)::numeric AS quantity FROM inventory_reservations WHERE item_id=$1 AND status='reserved'`,[catalogItem.rows[0].id])).rows[0].quantity),2,'un tentativo non disponibile non altera la riserva esistente');
+  await db.query(`UPDATE estimates SET status='rejected' WHERE id=$1`,[overEstimate.rows[0].id]);
+  const manualUse = await db.query(`SELECT id,reserved_by FROM inventory_reservations WHERE item_id=$1 AND work_order_id=$2 AND status='reserved' ORDER BY id LIMIT 1`,[catalogItem.rows[0].id,order.rows[0].id]);
+  await db.query(`UPDATE inventory_items SET quantity=quantity-1 WHERE id=$1`,[catalogItem.rows[0].id]);
+  await db.query(`UPDATE inventory_reservations SET quantity=1,status='consumed' WHERE id=$1`,[manualUse.rows[0].id]);
+  await db.query(`INSERT INTO inventory_reservations(item_id,work_order_id,quantity,status,reserved_by) VALUES($1,$2,1,'reserved',$3)`,[catalogItem.rows[0].id,order.rows[0].id,user1.rows[0].id]);
+  await db.query(`INSERT INTO stock_movements(item_id,work_order_id,movement_type,quantity,reason,user_id) VALUES($1,$2,'work_order_use',-1,'Scarico manuale test',$3)`,[catalogItem.rows[0].id,order.rows[0].id,user1.rows[0].id]);
+  const partsInvoice = await db.query(`INSERT INTO invoices(work_order_id,invoice_number,status) VALUES($1,'GO-2026-PARTS','draft') RETURNING id`,[order.rows[0].id]);
+  await db.query(`INSERT INTO invoice_lines(invoice_id,kind,description,quantity,unit_price,inventory_item_id) VALUES($1,'part','Pastiglie freno',2,25,$2)`,[partsInvoice.rows[0].id,catalogItem.rows[0].id]);
+  await consumeInvoiceParts(db,partsInvoice.rows[0].id,order.rows[0].id,user1.rows[0].id);
+  const consumed = await db.query(`SELECT i.quantity,r.status,r.quantity AS reserved_quantity,(SELECT count(*)::int FROM stock_movements m WHERE m.item_id=i.id AND m.work_order_id=$2 AND m.movement_type='work_order_use') AS movements FROM inventory_items i JOIN inventory_reservations r ON r.item_id=i.id WHERE i.id=$1 AND r.work_order_id=$2 ORDER BY r.id DESC LIMIT 1`,[catalogItem.rows[0].id,order.rows[0].id]);
+  assert.equal(Number(consumed.rows[0].quantity),6,'la conferma documento scarica la quantità fatturata dal magazzino');
+  assert.equal(consumed.rows[0].status,'consumed','la riserva collegata al ricambio viene chiusa come consumata');
+  assert.equal(Number(consumed.rows[0].reserved_quantity),1,'la seconda fase chiude soltanto la quantità ancora da scaricare');
+  assert.equal(Number(consumed.rows[0].movements),2,'lo scarico genera un movimento di magazzino collegato all’ordine senza ripetere lo scarico manuale');
+  assert.equal(Number((await db.query(`SELECT sum(quantity)::numeric AS quantity FROM inventory_reservations WHERE item_id=$1 AND work_order_id=$2 AND status='consumed'`,[catalogItem.rows[0].id,order.rows[0].id])).rows[0].quantity),2,'la conferma riconosce e completa anche uno scarico parziale già registrato');
+
   const resource = await db.query(`INSERT INTO workshop_resources(name,resource_type) VALUES('Ponte 1','lift') RETURNING id`);
   const booking = await db.query(`INSERT INTO bookings(customer_id,vehicle_id,starts_at,reason,status,duration_minutes,resource_id) VALUES($1,$2,'2026-10-01T08:00:00Z','Tagliando','confirmed',90,$3) RETURNING duration_minutes,resource_id`,[customer.rows[0].id,vehicle.rows[0].id,resource.rows[0].id]);
   assert.equal(booking.rows[0].duration_minutes,90,'la prenotazione conserva durata prevista e risorsa');
@@ -110,7 +137,7 @@ test('schema is repeatable and protects core workshop records', async t => {
   const quoteWorkflow = await db.query(`SELECT e.estimate_type,t.expires_at>now() AS valid FROM estimates e JOIN customer_action_tokens t ON t.estimate_id=e.id WHERE e.id=$1`,[extraEstimate.rows[0].id]);
   assert.equal(quoteWorkflow.rows[0].estimate_type,'extra','le variazioni restano distinte dal preventivo iniziale');
   assert.equal(quoteWorkflow.rows[0].valid,true,'il link cliente ha una scadenza verificabile');
-  const approvedVersion = await db.query(`SELECT id,version FROM estimates WHERE work_order_id=$1 AND status='approved' ORDER BY version DESC LIMIT 1`,[order.rows[0].id]);
+  const approvedVersion = await db.query(`SELECT id,version FROM estimates WHERE work_order_id=$1 AND estimate_type='initial' AND status='approved' ORDER BY version DESC LIMIT 1`,[order.rows[0].id]);
   const pendingVersion = await db.query(`SELECT id FROM estimates WHERE work_order_id=$1 AND status IN ('draft','sent') LIMIT 1`,[order.rows[0].id]);
   assert.equal(Number(approvedVersion.rows[0].id),Number(initialEstimate.rows[0].id),'una variazione inviata non nasconde il preventivo precedente approvato');
   assert.equal(pendingVersion.rowCount,1,'una variazione in attesa deve bloccare la fatturazione finché non è decisa');
