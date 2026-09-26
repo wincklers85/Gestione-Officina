@@ -104,6 +104,9 @@ test('schema is repeatable and protects core workshop records', async t => {
   await db.query(`INSERT INTO privacy_requests(customer_id,request_type,requester,notes) VALUES($1,'export','Cliente test','Richiesta copia dati')`,[customer.rows[0].id]);
   const privacy = await db.query(`SELECT status FROM privacy_requests WHERE customer_id=$1`,[customer.rows[0].id]);
   assert.equal(privacy.rows[0].status,'received','le richieste privacy hanno un workflow persistente');
+  await db.query(`INSERT INTO role_module_permissions(role,module,allowed,updated_by) VALUES('mechanic','inventory',false,$1)`,[user1.rows[0].id]);
+  const permission = await db.query(`SELECT allowed FROM role_module_permissions WHERE role='mechanic' AND module='inventory'`);
+  assert.equal(permission.rows[0].allowed,false,'il tenant può disattivare un modulo per un ruolo senza cancellare la definizione base');
 
   await db.exec("SELECT set_config('app.platform_admin','true',false)");
   await db.query(`INSERT INTO workshops(name,status) VALUES('Seconda officina','active')`);
