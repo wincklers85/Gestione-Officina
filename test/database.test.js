@@ -101,6 +101,25 @@ test('schema is repeatable and protects core workshop records', async t => {
   await db.query(`UPDATE inventory_items SET quantity=quantity+2 WHERE id=$1`, [item.rows[0].id]);
   const stock = await db.query(`SELECT quantity FROM inventory_items WHERE id=$1`, [item.rows[0].id]);
   assert.equal(Number(stock.rows[0].quantity), 4, 'la ricezione parziale aggiunge soltanto la quantità arrivata');
+  const returnCase=await db.query(`INSERT INTO supplier_return_cases(supplier_id,item_id,purchase_order_id,quantity,reason,created_by) VALUES($1,$2,$3,1,'Difetto verificato sul ricambio',$4) RETURNING id,status`,[supplier.rows[0].id,item.rows[0].id,purchase.rows[0].id,user1.rows[0].id]);
+  await db.query(`INSERT INTO supplier_return_events(supplier_return_case_id,to_status,note,created_by) VALUES($1,'reported','Pratica aperta con il fornitore',$2)`,[returnCase.rows[0].id,user1.rows[0].id]);
+  await db.query(`UPDATE supplier_return_cases SET status='shipped',supplier_reference='RMA-TEST',tracking_reference='TRACK-TEST',shipped_at=now(),updated_at=now() WHERE id=$1`,[returnCase.rows[0].id]);
+  await db.query(`UPDATE inventory_items SET quantity=quantity-1 WHERE id=$1`,[item.rows[0].id]);
+  await db.query(`INSERT INTO stock_movements(item_id,movement_type,quantity,reason,user_id) VALUES($1,'supplier_return',-1,'Pratica reso di test',$2)`,[item.rows[0].id,user1.rows[0].id]);
+  await db.query(`INSERT INTO supplier_return_events(supplier_return_case_id,from_status,to_status,note,supplier_reference,tracking_reference,created_by) VALUES($1,'reported','shipped','Ricambio spedito al fornitore','RMA-TEST','TRACK-TEST',$2)`,[returnCase.rows[0].id,user1.rows[0].id]);
+  const returnStock=await db.query(`SELECT quantity FROM inventory_items WHERE id=$1`,[item.rows[0].id]);
+  assert.equal(Number(returnStock.rows[0].quantity),3,'la spedizione del reso è collegabile al movimento e scarica la giacenza');
+  await db.query(`UPDATE supplier_return_cases SET status='replacement_received',supplier_resolution='Ricevuto ricambio sostitutivo',resolved_at=now(),updated_at=now() WHERE id=$1`,[returnCase.rows[0].id]);
+  await db.query(`UPDATE inventory_items SET quantity=quantity+1 WHERE id=$1`,[item.rows[0].id]);
+  await db.query(`INSERT INTO stock_movements(item_id,movement_type,quantity,reason,user_id) VALUES($1,'supplier_replacement',1,'Sostituzione pratica di test',$2)`,[item.rows[0].id,user1.rows[0].id]);
+  await db.query(`INSERT INTO supplier_return_events(supplier_return_case_id,from_status,to_status,note,supplier_reference,created_by) VALUES($1,'shipped','replacement_received','Sostituzione ricevuta','RMA-TEST',$2)`,[returnCase.rows[0].id,user2.rows[0].id]);
+  const returnTrail=await db.query(`SELECT c.status,c.supplier_reference,c.tracking_reference,count(e.id)::int AS events FROM supplier_return_cases c JOIN supplier_return_events e ON e.supplier_return_case_id=c.id WHERE c.id=$1 GROUP BY c.id`,[returnCase.rows[0].id]);
+  assert.equal(returnTrail.rows[0].status,'replacement_received','la pratica conserva l’esito corrente');
+  assert.equal(returnTrail.rows[0].supplier_reference,'RMA-TEST');
+  assert.equal(returnTrail.rows[0].tracking_reference,'TRACK-TEST');
+  assert.equal(returnTrail.rows[0].events,3,'apertura e passaggi del reso restano nello storico');
+  const returnPolicies=await db.query(`SELECT tablename FROM pg_policies WHERE policyname='tenant_isolation' AND tablename IN ('supplier_return_cases','supplier_return_events')`);
+  assert.equal(returnPolicies.rowCount,2,'pratiche e cronologia rispettano l’isolamento tenant');
 
   const catalogItem = await db.query(`INSERT INTO inventory_items(sku,description,unit_price,quantity) VALUES('BR-1','Pastiglie freno',25,8) RETURNING id`);
   const partsEstimate = await db.query(`INSERT INTO estimates(work_order_id,version,estimate_type,status) VALUES($1,3,'extra','approved') RETURNING id`,[order.rows[0].id]);

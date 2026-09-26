@@ -1,5 +1,13 @@
 # Registro modifiche
 
+## 0.12.0 — 26/09/2026
+
+- Aggiunta la sezione **Resi fornitori** per aprire una pratica di ricambio difettoso collegata al fornitore, all’articolo e, se disponibile, all’ordine d’acquisto originale.
+- La pratica registra difetto, quantità, RMA, tracking, esito, eventuale rimborso e una cronologia append-only con autore, data e nota a ogni passaggio.
+- Stati gestiti: segnalato, autorizzato, spedito, ricevuto dal fornitore, sostituito, rimborsato, rifiutato, chiuso o annullato.
+- Lo scarico avviene al momento della spedizione e controlla le riserve attive; la sostituzione ricarica la giacenza. Il rimborso non altera la quantità in magazzino.
+- Aggiornati popup versione, Info e navigazione del magazzino.
+
 ## 0.11.0 — 26/09/2026
 
 - Aggiunta la sezione **Garanzie e rientri** per aprire pratiche collegate agli ordini già consegnati.
