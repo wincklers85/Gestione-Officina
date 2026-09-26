@@ -1,4 +1,12 @@
 # Registro modifiche
+
+## 0.8.0 — 26/09/2026
+
+- Creata una postazione meccanico separata dal menu del gestionale, con accesso diretto ai lavori assegnati.
+- Aumentate dimensioni e chiarezza delle schede e dei comandi per l’uso touch su tablet Android.
+- Il timer personale mostra ore, minuti e secondi e offre comandi grandi per avvio, pausa, ripresa e termine.
+- I lavori con timer attivo o in pausa vengono messi in cima; aggiunto il pulsante schermo intero, nei browser compatibili.
+
 ## 0.7.0 — 26/09/2026
 
 - I meccanici possono aggiungere note tecniche e richieste ricambi dalla postazione tablet; una richiesta non scarica né riserva automaticamente la giacenza.
