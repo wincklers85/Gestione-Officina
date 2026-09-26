@@ -52,3 +52,19 @@
 .customer-screen .signature-pad{height:clamp(180px,26vh,280px);touch-action:none}
 .customer-screen .button{min-height:58px;padding:13px 20px;font-size:16px}
 @media(max-width:700px){.customer-screen>header{margin-bottom:12px;padding:11px 13px}.customer-screen>header img{max-width:150px;max-height:54px}.customer-screen .client-scroll{max-height:34dvh}.customer-screen .client-document{margin:10px 0}.customer-screen .signature-pad{height:180px}}
+
+.tablet-filters{display:flex;gap:8px;overflow:auto;padding:2px 1px 14px;margin-bottom:3px;scrollbar-width:thin}
+.tablet-filter{display:inline-flex;align-items:center;min-height:46px;padding:9px 15px;border:1px solid var(--line);border-radius:999px;background:#fff;color:#344054;font-weight:650;white-space:nowrap}
+.tablet-filter.active{background:#fff0e7;border-color:#ef6b22;color:#a9440b}
+.tablet-form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-top:16px}
+.tablet-form-grid form{padding:16px;border:1px solid var(--line);border-radius:12px;background:#fbfcfd}
+.tablet-form-grid h3{margin-bottom:12px}
+.tablet-form-grid textarea{min-height:110px}
+.tablet-updates-list{display:grid;gap:10px;margin-top:14px}
+.tablet-update,.order-update{display:flex;align-items:flex-start;justify-content:space-between;gap:15px;padding:14px;border:1px solid var(--line);border-radius:11px;background:#fff}
+.tablet-update p,.order-update p{margin:7px 0;color:#253246;white-space:pre-wrap;overflow-wrap:anywhere}
+.tablet-update small,.order-update small{color:#596579}
+.tablet-update-actions,.order-update .actions{display:flex;gap:6px;flex-wrap:wrap}
+.tablet-update-actions form,.order-update form{margin:0}
+.tablet-state-card .inline-form{max-width:700px}
+@media(max-width:900px){.tablet-form-grid{grid-template-columns:1fr}.tablet-filter{min-height:50px;padding:10px 16px}.tablet-update{flex-direction:column}.tablet-update-actions,.tablet-update-actions form{width:100%}.tablet-update-actions .button{width:100%;min-height:50px}.tablet-state-card .inline-form{flex-direction:column}.tablet-state-card .inline-form>*{width:100%}}
