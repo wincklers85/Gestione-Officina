@@ -1,9 +1,15 @@
 async function reserveEstimateParts(client, estimateId, workOrderId, userId) {
+  const estimate = await client.query(`SELECT id FROM estimates WHERE id=$1 AND work_order_id=$2 AND status='approved'`, [estimateId,workOrderId]);
+  if (!estimate.rowCount) throw new Error('Approva il preventivo prima di riservare i ricambi.');
   const lines = await client.query(`
-    SELECT inventory_item_id AS item_id, sum(quantity)::numeric AS quantity
-    FROM estimate_lines
-    WHERE estimate_id=$1 AND kind='part' AND inventory_item_id IS NOT NULL
-    GROUP BY inventory_item_id ORDER BY inventory_item_id`, [estimateId]);
+    WITH current_initial AS (
+      SELECT id FROM estimates WHERE work_order_id=$1 AND estimate_type='initial' AND status='approved' ORDER BY version DESC LIMIT 1
+    )
+    SELECT l.inventory_item_id AS item_id, sum(l.quantity)::numeric AS quantity
+    FROM estimates e JOIN estimate_lines l ON l.estimate_id=e.id
+    WHERE e.work_order_id=$1 AND e.status='approved' AND l.kind='part' AND l.inventory_item_id IS NOT NULL
+      AND (e.estimate_type='extra' OR e.id=(SELECT id FROM current_initial))
+    GROUP BY l.inventory_item_id ORDER BY l.inventory_item_id`, [workOrderId]);
 
   for (const line of lines.rows) {
     const item = await client.query('SELECT id,quantity,description FROM inventory_items WHERE id=$1 FOR UPDATE', [line.item_id]);
@@ -16,11 +22,12 @@ async function reserveEstimateParts(client, estimateId, workOrderId, userId) {
     const target = Number(line.quantity), totalReserved = Number(reservations.rows[0].total_reserved), ownReserved = Number(reservations.rows[0].own_reserved), ownConsumed = Number(reservations.rows[0].own_consumed);
     if (ownConsumed > target + 0.000001) throw new Error(`Per ${item.rows[0].description} risulta già scaricata una quantità superiore a quella approvata.`);
     const needed = target - ownConsumed;
+    if (ownReserved > needed + 0.000001) throw new Error(`Per ${item.rows[0].description} ci sono riserve superiori al preventivo approvato. Libera le quantità in eccesso e riprova.`);
     const availableForOrder = Number(item.rows[0].quantity) - (totalReserved - ownReserved);
     if (needed > availableForOrder + 0.000001) throw new Error(`Giacenza insufficiente per ${item.rows[0].description}: richiesti ${needed}, disponibili ${Math.max(0, availableForOrder)}.`);
     const shortage = needed - ownReserved;
     if (shortage > 0.000001) {
-      const reservation = await client.query(`INSERT INTO inventory_reservations(item_id,work_order_id,quantity,reserved_by) VALUES($1,$2,$3,$4) RETURNING id`, [line.item_id, workOrderId, shortage, userId]);
+      const reservation = await client.query(`INSERT INTO inventory_reservations(item_id,work_order_id,estimate_id,quantity,reserved_by) VALUES($1,$2,$3,$4,$5) RETURNING id`, [line.item_id, workOrderId, estimateId, shortage, userId]);
       await client.query(`INSERT INTO audit_log(user_id,action,entity_type,entity_id,details) VALUES($1,'reserve','inventory_item',$2,$3)`, [userId, String(line.item_id), JSON.stringify({reservation_id:reservation.rows[0].id,work_order_id:Number(workOrderId),quantity:shortage,source:'approved_estimate'})]);
     }
   }
@@ -56,7 +63,7 @@ async function consumeInvoiceParts(client, invoiceId, workOrderId, userId) {
         await client.query(`UPDATE inventory_reservations SET status='consumed',updated_at=now() WHERE id=$1`, [reservation.id]);
       } else {
         await client.query(`UPDATE inventory_reservations SET quantity=quantity-$1,updated_at=now() WHERE id=$2`, [consumed, reservation.id]);
-        await client.query(`INSERT INTO inventory_reservations(item_id,work_order_id,quantity,status,reserved_by) VALUES($1,$2,$3,'consumed',$4)`, [line.item_id,workOrderId,consumed,reservation.reserved_by]);
+        await client.query(`INSERT INTO inventory_reservations(item_id,work_order_id,estimate_id,quantity,status,reserved_by) VALUES($1,$2,$3,$4,'consumed',$5)`, [line.item_id,workOrderId,reservation.estimate_id,consumed,reservation.reserved_by]);
       }
       remaining -= consumed;
     }

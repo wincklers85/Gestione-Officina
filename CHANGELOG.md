@@ -4,6 +4,7 @@
 
 - Nelle righe del preventivo è possibile selezionare un ricambio del magazzino; la descrizione e il prezzo sono presi dal catalogo, mentre quantità, aliquota e importo approvato restano salvati nella versione del preventivo.
 - All’approvazione vengono riservate le quantità necessarie. Se la disponibilità è insufficiente, l’approvazione non viene registrata.
+- Quando viene approvata una nuova versione del preventivo iniziale, le riserve delle versioni iniziali precedenti vengono liberate; le variazioni approvate restano associate al lavoro.
 - Il documento gestionale riunisce il preventivo iniziale approvato e le variazioni extra approvate. Prima della creazione, il sistema verifica che quantità riservate e quantità autorizzate coincidano.
 - Alla conferma del documento i ricambi vengono scaricati dal magazzino con un movimento collegato all’ordine; le eventuali riserve residue vengono rilasciate. Un ricambio già scaricato non viene addebitato/scaricato due volte.
 - Il ruolo Responsabile può confermare il documento e registrare pagamenti.
