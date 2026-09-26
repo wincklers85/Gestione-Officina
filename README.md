@@ -42,7 +42,7 @@ Il superuser è un account di piattaforma separato dagli utenti delle officine. 
 
 Per installazioni preesistenti che richiedono un titolare iniziale nel tenant legacy, `npm run admin:create` resta disponibile dalla Shell con `DATABASE_URL` collegato al database.
 
-Il Blueprint non crea automaticamente un database a pagamento: la risorsa e il piano PostgreSQL vanno scelti dal proprietario in Render prima del deploy. Per produzione non basare dati o documenti sul disco temporaneo del servizio. Le foto caricate sono nel database; i PDF sono generati su richiesta e le copie emesse non sono ancora archiviate come snapshot storici.
+Il Blueprint non crea automaticamente un database a pagamento: la risorsa e il piano PostgreSQL vanno scelti dal proprietario in Render prima del deploy. Per produzione non basare dati o documenti sul disco temporaneo del servizio. Foto e copie PDF generate da presa in carico, preventivi e documenti gestionali sono archiviate nel database come snapshot scaricabili. Il backup applicativo deve quindi includere anche i documenti nel database.
 
 ## Brand assets
 
@@ -55,7 +55,7 @@ La base applicativa comprende login con sessioni PostgreSQL, dashboard, ricerca 
 
 Sono disponibili preventivi versionati, variazioni extra e approvazione cliente con link monouso a scadenza, magazzino con riserve, resi, articoli difettosi, conteggio inventario e ordini fornitore con ricezione parziale, checklist qualità, test, documenti gestionali non fiscali, pagamenti e consegna subordinata ai controlli e al saldo. La sezione report filtra i documenti per data ed esporta CSV. Sono presenti l’esportazione JSON della scheda cliente e un registro per tracciare le richieste privacy.
 
-Restano da completare prima di considerarlo un gestionale completo per uso operativo: portale cliente con accesso autenticato allo stato/documenti, invio reale di email/SMS/WhatsApp, archivio immutabile dei PDF emessi con versioni storiche, firma cliente integrata e modulo di accettazione danni più completo, matrice personalizzabile dei permessi, resi collegati a pratiche fornitore/garanzia, esportazione XLSX e report completi su margini e produttività, procedure automatizzate di backup/ripristino, e test end-to-end dei flussi e dei permessi. L’emissione fiscale richiede integrazione con un servizio esterno verificato dall’officina e dal commercialista. Il registro privacy e l’esportazione dati sono strumenti operativi, non adempimenti automatizzati. Non è dichiarata conformità fiscale o GDPR.
+Restano da completare prima di considerarlo un gestionale completo per uso operativo: portale cliente con accesso autenticato allo stato/documenti, invio reale di email/SMS/WhatsApp, firma cliente integrata e modulo di accettazione danni più completo, matrice personalizzabile dei permessi, resi collegati a pratiche fornitore/garanzia, esportazione XLSX e report completi su margini e produttività, procedure automatizzate di backup/ripristino, e test end-to-end dei flussi e dei permessi. L’emissione fiscale richiede integrazione con un servizio esterno verificato dall’officina e dal commercialista. Il registro privacy e l’esportazione dati sono strumenti operativi, non adempimenti automatizzati. Non è dichiarata conformità fiscale o GDPR.
 
 ## Sicurezza
 
