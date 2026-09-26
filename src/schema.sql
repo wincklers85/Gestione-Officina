@@ -295,6 +295,10 @@ CREATE TABLE IF NOT EXISTS invoice_lines (
   unit_price NUMERIC(10,2) NOT NULL DEFAULT 0,
   vat_rate NUMERIC(5,2) NOT NULL DEFAULT 22
 );
+ALTER TABLE estimate_lines ADD COLUMN IF NOT EXISTS inventory_item_id BIGINT REFERENCES inventory_items(id);
+ALTER TABLE invoice_lines ADD COLUMN IF NOT EXISTS inventory_item_id BIGINT REFERENCES inventory_items(id);
+CREATE INDEX IF NOT EXISTS estimate_lines_inventory_item_idx ON estimate_lines(inventory_item_id) WHERE inventory_item_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS invoice_lines_inventory_item_idx ON invoice_lines(inventory_item_id) WHERE inventory_item_id IS NOT NULL;
 CREATE TABLE IF NOT EXISTS payments (
   id BIGSERIAL PRIMARY KEY,
   invoice_id BIGINT NOT NULL REFERENCES invoices(id),

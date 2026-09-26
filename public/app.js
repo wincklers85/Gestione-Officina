@@ -62,9 +62,20 @@ document.addEventListener('DOMContentLoaded',()=>{
       const row=root?.querySelector('.estimate-line');
       if(!row)return;
       const clone=row.cloneNode(true);
-      clone.querySelectorAll('input').forEach(input=>{if(input.name==='line_quantity')input.value='1';else if(input.name==='line_vat_rate')input.value='22';else input.value='';});
+      clone.querySelectorAll('input').forEach(input=>{if(input.name==='line_quantity')input.value='1';else if(input.name==='line_vat_rate')input.value='22';else if(input.name==='line_unit_price')input.value='0';else input.value='';});
+      clone.querySelectorAll('select').forEach(select=>{select.value=select.name==='line_kind'?'labor':'';});
       const remove=document.createElement('button');remove.type='button';remove.className='button small remove-line';remove.textContent='Rimuovi riga';remove.addEventListener('click',()=>clone.remove());
       clone.append(remove);root.append(clone);
+    });
+    const root=document.querySelector('#estimate-lines');
+    root?.addEventListener('change',event=>{
+      const stock=event.target.closest('.estimate-stock-item');
+      if(!stock||!stock.value)return;
+      const row=stock.closest('.estimate-line');
+      const option=stock.selectedOptions[0];
+      row.querySelector('[name="line_kind"]').value='part';
+      row.querySelector('[name="line_description"]').value=option.dataset.description||option.textContent.split(' · ')[0];
+      row.querySelector('[name="line_unit_price"]').value=option.dataset.price||'0';
     });
   }
   const addPurchaseLine=document.querySelector('#add-purchase-line');
