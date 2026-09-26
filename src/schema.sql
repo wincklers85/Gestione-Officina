@@ -342,6 +342,15 @@ CREATE TABLE IF NOT EXISTS privacy_requests (
   completed_at TIMESTAMPTZ,
   handled_by BIGINT REFERENCES users(id)
 );
+CREATE TABLE IF NOT EXISTS role_module_permissions (
+  id BIGSERIAL PRIMARY KEY,
+  role TEXT NOT NULL CHECK (role IN ('manager','reception','mechanic','warehouse','accounting','accountant')),
+  module TEXT NOT NULL CHECK (module IN ('customers','bookings','orders','inventory','billing','reports','team','settings','privacy')),
+  allowed BOOLEAN NOT NULL DEFAULT TRUE,
+  updated_by BIGINT REFERENCES users(id),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE(role,module)
+);
 CREATE TABLE IF NOT EXISTS vehicle_deliveries (
   id BIGSERIAL PRIMARY KEY,
   work_order_id BIGINT NOT NULL UNIQUE REFERENCES work_orders(id),
@@ -422,7 +431,7 @@ BEGIN
     'work_operations','operation_assignments','time_entries','time_entry_adjustments','estimates','customer_action_tokens','customer_portal_tokens','estimate_customer_responses','estimate_lines',
     'inventory_items','stock_movements','inventory_reservations','suppliers','purchase_orders',
     'purchase_order_lines','invoices','invoice_lines','payments','quality_checks','road_tests',
-    'documents','document_acceptances','privacy_requests','vehicle_deliveries','audit_log'
+    'documents','document_acceptances','privacy_requests','role_module_permissions','vehicle_deliveries','audit_log'
   ] LOOP
     EXECUTE format('ALTER TABLE %I ADD COLUMN IF NOT EXISTS workshop_id BIGINT',t);
     EXECUTE format('UPDATE %I SET workshop_id=1 WHERE workshop_id IS NULL',t);
@@ -448,7 +457,7 @@ BEGIN
     'work_operations','operation_assignments','time_entries','time_entry_adjustments','estimates','customer_action_tokens','customer_portal_tokens','estimate_customer_responses','estimate_lines',
     'inventory_items','stock_movements','inventory_reservations','suppliers','purchase_orders',
     'purchase_order_lines','invoices','invoice_lines','payments','quality_checks','road_tests',
-    'documents','document_acceptances','privacy_requests','vehicle_deliveries','audit_log','licenses'
+    'documents','document_acceptances','privacy_requests','role_module_permissions','vehicle_deliveries','audit_log','licenses'
   ] LOOP
     EXECUTE format('ALTER TABLE %I ENABLE ROW LEVEL SECURITY',t);
     EXECUTE format('ALTER TABLE %I FORCE ROW LEVEL SECURITY',t);
