@@ -110,6 +110,12 @@ test('schema is repeatable and protects core workshop records', async t => {
   const quoteWorkflow = await db.query(`SELECT e.estimate_type,t.expires_at>now() AS valid FROM estimates e JOIN customer_action_tokens t ON t.estimate_id=e.id WHERE e.id=$1`,[extraEstimate.rows[0].id]);
   assert.equal(quoteWorkflow.rows[0].estimate_type,'extra','le variazioni restano distinte dal preventivo iniziale');
   assert.equal(quoteWorkflow.rows[0].valid,true,'il link cliente ha una scadenza verificabile');
+  const approvedVersion = await db.query(`SELECT id,version FROM estimates WHERE work_order_id=$1 AND status='approved' ORDER BY version DESC LIMIT 1`,[order.rows[0].id]);
+  const pendingVersion = await db.query(`SELECT id FROM estimates WHERE work_order_id=$1 AND status IN ('draft','sent') LIMIT 1`,[order.rows[0].id]);
+  assert.equal(Number(approvedVersion.rows[0].id),Number(initialEstimate.rows[0].id),'una variazione inviata non nasconde il preventivo precedente approvato');
+  assert.equal(pendingVersion.rowCount,1,'una variazione in attesa deve bloccare la fatturazione finché non è decisa');
+  await db.query(`UPDATE estimates SET status='rejected' WHERE id=$1`,[extraEstimate.rows[0].id]);
+  assert.equal((await db.query(`SELECT id FROM estimates WHERE work_order_id=$1 AND status IN ('draft','sent') LIMIT 1`,[order.rows[0].id])).rowCount,0,'dopo il rifiuto della variazione la fatturazione può usare il preventivo approvato');
   const portalToken = await db.query(`INSERT INTO customer_portal_tokens(customer_id,token_hash,expires_at,created_by) VALUES($1,$2,now()+interval '90 days',$3) RETURNING id`,[customer.rows[0].id,'b'.repeat(64),user1.rows[0].id]);
   const portalLive = await db.query(`SELECT id FROM customer_portal_tokens WHERE token_hash=$1 AND revoked_at IS NULL AND expires_at>now()`,['b'.repeat(64)]);
   assert.equal(portalLive.rowCount,1,'il link portale è valido entro la scadenza');

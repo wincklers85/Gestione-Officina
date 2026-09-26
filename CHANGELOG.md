@@ -1,5 +1,13 @@
 # Registro modifiche
 
+## 0.9.0 — 26/09/2026
+
+- I ruoli autorizzati di responsabile e magazzino possono aggiungere e riservare ricambi direttamente dalla scheda del lavoro; la quantità disponibile viene controllata sotto blocco transazionale e l’azione entra nel registro.
+- La fatturazione si può avviare dalla scheda quando l’auto è pronta, esiste un preventivo approvato e non ci sono variazioni in attesa. Una variazione deve essere approvata o rifiutata prima del documento.
+- Risolto il caso in cui una variazione successiva in bozza o inviata nascondeva il passaggio alla fatturazione nonostante un preventivo precedente approvato.
+- La scheda collega il documento gestionale già creato e spiega la sequenza per controlli, auto pronta, documento, pagamento e consegna.
+- I ricambi riservati restano un dato di magazzino: per addebitarli al cliente vanno inseriti nel preventivo e approvati. Il documento resta gestionale e non fiscale.
+
 ## 0.8.0 — 26/09/2026
 
 - Creata una postazione meccanico separata dal menu del gestionale, con accesso diretto ai lavori assegnati.
