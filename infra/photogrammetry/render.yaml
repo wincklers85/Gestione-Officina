@@ -1,0 +1,17 @@
+# Blueprint separato e opzionale: la fotogrammetria usa CPU/RAM aggiuntive.
+# Creare il worker solo dopo aver scelto il piano; DATABASE_URL è un segreto.
+services:
+  - type: worker
+    name: go-photogrammetry
+    runtime: docker
+    region: frankfurt
+    plan: standard
+    dockerfilePath: ./infra/photogrammetry/Dockerfile
+    dockerContext: .
+    dockerCommand: node src/reconstruction-worker.js
+    maxShutdownDelaySeconds: 300
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: PGSSL
+        value: ""

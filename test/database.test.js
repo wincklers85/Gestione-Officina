@@ -23,6 +23,29 @@ test('schema is repeatable and protects core workshop records', async t => {
   const customer = await db.query(`INSERT INTO customers(name) VALUES('Cliente test') RETURNING id`);
   const vehicle = await db.query(`INSERT INTO vehicles(customer_id,plate,make,model) VALUES($1,'AA000AA','GO','Test') RETURNING id`, [customer.rows[0].id]);
   const order = await db.query(`INSERT INTO work_orders(customer_id,vehicle_id) VALUES($1,$2) RETURNING id`, [customer.rows[0].id,vehicle.rows[0].id]);
+  const stations = ['front','front_right','right','rear_right','rear','rear_left','left','front_left'];
+  const photoBytes = Buffer.from([137,80,78,71,13,10,26,10,1,2,3]);
+  for (const station of stations) {
+    for (let take=0;take<3;take++) {
+      const doc=await db.query(`INSERT INTO documents(work_order_id,document_type,file_name,mime_type,file_data) VALUES($1,'vehicle_photo',$2,'image/png',$3) RETURNING id`,[order.rows[0].id,`${station}-${take}.png`,photoBytes]);
+      await db.query(`INSERT INTO intake_photos(work_order_id,document_id,category,station,damage_marks) VALUES($1,$2,'exterior',$3,$4::jsonb)`,[order.rows[0].id,doc.rows[0].id,station,JSON.stringify(take===0?[{x:.42,y:.31}]:[])]);
+    }
+  }
+  for(const [category,station] of [['interior','interior_front'],['dashboard','dashboard']]){
+    const doc=await db.query(`INSERT INTO documents(work_order_id,document_type,file_name,mime_type,file_data) VALUES($1,'vehicle_photo',$2,'image/png',$3) RETURNING id`,[order.rows[0].id,`${station}.png`,photoBytes]);
+    await db.query(`INSERT INTO intake_photos(work_order_id,document_id,category,station) VALUES($1,$2,$3,$4)`,[order.rows[0].id,doc.rows[0].id,category,station]);
+  }
+  const exteriorCoverage=await db.query(`SELECT count(*)::int AS count,count(DISTINCT station)::int AS stations FROM intake_photos WHERE work_order_id=$1 AND category='exterior'`,[order.rows[0].id]);
+  assert.equal(exteriorCoverage.rows[0].count,24,'la ricostruzione usa tutte le foto esterne');
+  assert.equal(exteriorCoverage.rows[0].stations,8,'le otto aree esterne risultano coperte');
+  const reconstruction=await db.query(`INSERT INTO vehicle_reconstructions(work_order_id,input_photo_count,queued_by) VALUES($1,24,$2) RETURNING id,status`,[order.rows[0].id,user1.rows[0].id]);
+  assert.equal(reconstruction.rows[0].status,'queued','l’elaborazione fotogrammetrica è accodata, non blocca la presa in carico');
+  await db.query(`UPDATE vehicle_reconstructions SET status='running',started_at=now() WHERE id=$1`,[reconstruction.rows[0].id]);
+  const glb=Buffer.concat([Buffer.from('glTF'),Buffer.alloc(1020)]);
+  await db.query(`UPDATE vehicle_reconstructions SET status='complete',result_glb=$1,completed_at=now() WHERE id=$2`,[glb,reconstruction.rows[0].id]);
+  const savedModel=await db.query(`SELECT status,result_glb FROM vehicle_reconstructions WHERE id=$1`,[reconstruction.rows[0].id]);
+  assert.equal(savedModel.rows[0].status,'complete');
+  assert.deepEqual(Buffer.from(savedModel.rows[0].result_glb),glb,'il GLB elaborato resta persistente nel database');
   const operation = await db.query(`INSERT INTO work_operations(work_order_id,title) VALUES($1,'Prova timer') RETURNING id`, [order.rows[0].id]);
 
   const start = '2026-09-25T09:00:00Z';
@@ -50,6 +73,12 @@ test('schema is repeatable and protects core workshop records', async t => {
   const acceptance = await db.query(`SELECT document_version,evidence::jsonb AS evidence FROM document_acceptances WHERE work_order_id=$1`, [order.rows[0].id]);
   assert.equal(acceptance.rows[0].document_version, version);
   assert.equal(acceptance.rows[0].evidence.text_snapshot, 'Condizioni di prova', 'lo storico conserva la versione del testo accettato');
+  const signed=await db.query(`INSERT INTO intake_acceptances(work_order_id,customer_id,signed_name,terms_text,terms_version,privacy_text,privacy_version,terms_accepted,privacy_acknowledged,marketing_consent,profiling_consent,repair_email_consent,road_test_decision,terms_signature,privacy_signature,signature_method,created_by) VALUES($1,$2,'Cliente test','Condizioni snapshot','v1','Informativa snapshot','p1',true,true,false,true,false,'refused',$3,$3,'tablet',$4) RETURNING id`,[order.rows[0].id,customer.rows[0].id,Buffer.from('firma-test'),user1.rows[0].id]);
+  const signedState=await db.query(`SELECT marketing_consent,profiling_consent,repair_email_consent,road_test_decision,terms_signature,privacy_signature FROM intake_acceptances WHERE id=$1`,[signed.rows[0].id]);
+  assert.equal(signedState.rows[0].road_test_decision,'refused','il rifiuto della prova su strada è conservato esplicitamente');
+  assert.equal(signedState.rows[0].marketing_consent,false,'il consenso marketing resta distinto e facoltativo');
+  assert.equal(signedState.rows[0].profiling_consent,true,'la scelta di profilazione è registrata separatamente');
+  assert.deepEqual(Buffer.from(signedState.rows[0].terms_signature),Buffer.from('firma-test'));
 
   const item = await db.query(`INSERT INTO inventory_items(sku,description,quantity) VALUES('F-1','Filtro prova',4) RETURNING id`);
   const reservation = await db.query(`INSERT INTO inventory_reservations(item_id,work_order_id,quantity,reserved_by) VALUES($1,$2,2,$3) RETURNING id`, [item.rows[0].id,order.rows[0].id,user1.rows[0].id]);

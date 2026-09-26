@@ -30,6 +30,8 @@ ALTER TABLE workshop_settings ADD COLUMN IF NOT EXISTS privacy_notice TEXT NOT N
 ALTER TABLE workshop_settings ADD COLUMN IF NOT EXISTS document_prefix TEXT NOT NULL DEFAULT 'GO';
 ALTER TABLE workshop_settings ADD COLUMN IF NOT EXISTS logo_data BYTEA;
 ALTER TABLE workshop_settings ADD COLUMN IF NOT EXISTS logo_mime TEXT NOT NULL DEFAULT 'image/png';
+ALTER TABLE workshop_settings ADD COLUMN IF NOT EXISTS labs_3d_enabled BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE workshop_settings ADD COLUMN IF NOT EXISTS customer_display_enabled BOOLEAN NOT NULL DEFAULT FALSE;
 CREATE TABLE IF NOT EXISTS workshop_resources (
   id BIGSERIAL PRIMARY KEY,
   name TEXT NOT NULL,
@@ -330,6 +332,73 @@ CREATE TABLE IF NOT EXISTS document_acceptances (
   accepted_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   user_id BIGINT REFERENCES users(id)
 );
+CREATE TABLE IF NOT EXISTS intake_photos (
+  id BIGSERIAL PRIMARY KEY,
+  work_order_id BIGINT NOT NULL REFERENCES work_orders(id) ON DELETE CASCADE,
+  document_id BIGINT NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
+  category TEXT NOT NULL CHECK (category IN ('exterior','interior','dashboard')),
+  station TEXT NOT NULL,
+  damage_marks JSONB NOT NULL DEFAULT '[]'::jsonb,
+  captured_by BIGINT REFERENCES users(id),
+  captured_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS intake_photos_order_idx ON intake_photos(work_order_id,category,station);
+CREATE TABLE IF NOT EXISTS intake_acceptances (
+  id BIGSERIAL PRIMARY KEY,
+  work_order_id BIGINT NOT NULL REFERENCES work_orders(id),
+  customer_id BIGINT NOT NULL REFERENCES customers(id),
+  signed_name TEXT NOT NULL,
+  terms_text TEXT NOT NULL,
+  terms_version TEXT NOT NULL,
+  privacy_text TEXT NOT NULL,
+  privacy_version TEXT NOT NULL,
+  terms_accepted BOOLEAN NOT NULL,
+  privacy_acknowledged BOOLEAN NOT NULL,
+  marketing_consent BOOLEAN NOT NULL DEFAULT FALSE,
+  profiling_consent BOOLEAN NOT NULL DEFAULT FALSE,
+  repair_email_consent BOOLEAN NOT NULL DEFAULT FALSE,
+  road_test_decision TEXT NOT NULL CHECK (road_test_decision IN ('authorized','refused')),
+  terms_signature BYTEA,
+  privacy_signature BYTEA,
+  signature_method TEXT NOT NULL CHECK (signature_method IN ('tablet','paper')),
+  preagreed_service TEXT NOT NULL DEFAULT '',
+  preagreed_price NUMERIC(10,2),
+  created_by BIGINT REFERENCES users(id),
+  accepted_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS intake_acceptances_order_idx ON intake_acceptances(work_order_id,accepted_at DESC);
+CREATE TABLE IF NOT EXISTS customer_screen_sessions (
+  id BIGSERIAL PRIMARY KEY,
+  work_order_id BIGINT NOT NULL REFERENCES work_orders(id) ON DELETE CASCADE,
+  token_hash TEXT NOT NULL UNIQUE,
+  mode TEXT NOT NULL DEFAULT 'consent' CHECK (mode IN ('consent','complete','closed')),
+  terms_text TEXT NOT NULL,
+  privacy_text TEXT NOT NULL,
+  created_by BIGINT REFERENCES users(id),
+  expires_at TIMESTAMPTZ NOT NULL,
+  completed_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE TABLE IF NOT EXISTS vehicle_reconstructions (
+  id BIGSERIAL PRIMARY KEY,
+  work_order_id BIGINT NOT NULL REFERENCES work_orders(id) ON DELETE CASCADE,
+  status TEXT NOT NULL DEFAULT 'queued' CHECK (status IN ('queued','running','complete','failed')),
+  current_stage TEXT NOT NULL DEFAULT 'queued',
+  input_photo_count INTEGER NOT NULL CHECK (input_photo_count >= 20),
+  result_glb BYTEA,
+  error_message TEXT NOT NULL DEFAULT '',
+  queued_by BIGINT REFERENCES users(id),
+  queued_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  started_at TIMESTAMPTZ,
+  completed_at TIMESTAMPTZ
+);
+ALTER TABLE vehicle_reconstructions ADD COLUMN IF NOT EXISTS current_stage TEXT NOT NULL DEFAULT 'queued';
+CREATE INDEX IF NOT EXISTS vehicle_reconstructions_queue_idx ON vehicle_reconstructions(status,queued_at) WHERE status='queued';
+CREATE TABLE IF NOT EXISTS photogrammetry_worker_status (
+  id INTEGER PRIMARY KEY CHECK (id=1),
+  last_seen TIMESTAMPTZ NOT NULL,
+  worker_version TEXT NOT NULL DEFAULT ''
+);
 CREATE TABLE IF NOT EXISTS privacy_requests (
   id BIGSERIAL PRIMARY KEY,
   customer_id BIGINT REFERENCES customers(id),
@@ -431,7 +500,7 @@ BEGIN
     'work_operations','operation_assignments','time_entries','time_entry_adjustments','estimates','customer_action_tokens','customer_portal_tokens','estimate_customer_responses','estimate_lines',
     'inventory_items','stock_movements','inventory_reservations','suppliers','purchase_orders',
     'purchase_order_lines','invoices','invoice_lines','payments','quality_checks','road_tests',
-    'documents','document_acceptances','privacy_requests','role_module_permissions','vehicle_deliveries','audit_log'
+    'documents','document_acceptances','intake_photos','intake_acceptances','customer_screen_sessions','vehicle_reconstructions','privacy_requests','role_module_permissions','vehicle_deliveries','audit_log'
   ] LOOP
     EXECUTE format('ALTER TABLE %I ADD COLUMN IF NOT EXISTS workshop_id BIGINT',t);
     EXECUTE format('UPDATE %I SET workshop_id=1 WHERE workshop_id IS NULL',t);
@@ -457,7 +526,7 @@ BEGIN
     'work_operations','operation_assignments','time_entries','time_entry_adjustments','estimates','customer_action_tokens','customer_portal_tokens','estimate_customer_responses','estimate_lines',
     'inventory_items','stock_movements','inventory_reservations','suppliers','purchase_orders',
     'purchase_order_lines','invoices','invoice_lines','payments','quality_checks','road_tests',
-    'documents','document_acceptances','privacy_requests','role_module_permissions','vehicle_deliveries','audit_log','licenses'
+    'documents','document_acceptances','intake_photos','intake_acceptances','customer_screen_sessions','vehicle_reconstructions','privacy_requests','role_module_permissions','vehicle_deliveries','audit_log','licenses'
   ] LOOP
     EXECUTE format('ALTER TABLE %I ENABLE ROW LEVEL SECURITY',t);
     EXECUTE format('ALTER TABLE %I FORCE ROW LEVEL SECURITY',t);
