@@ -39,6 +39,13 @@ test('schema is repeatable and protects core workshop records', async t => {
   assert.equal(sequence.complete,true,'gli otto punti esterni abilitano la sequenza foto');
   assert.equal(sequence.photos.length,8,'interni e cruscotto restano fuori dalla sequenza');
   const operation = await db.query(`INSERT INTO work_operations(work_order_id,title) VALUES($1,'Prova timer') RETURNING id`, [order.rows[0].id]);
+  const note=await db.query(`INSERT INTO work_order_updates(work_order_id,operation_id,update_type,description,created_by) VALUES($1,$2,'note','Diagnosi completata; nessuna perdita',$3) RETURNING id`,[order.rows[0].id,operation.rows[0].id,user1.rows[0].id]);
+  const request=await db.query(`INSERT INTO work_order_updates(work_order_id,operation_id,update_type,description,quantity,request_status,created_by) VALUES($1,$2,'parts_request','Pastiglie freno anteriori',1,'open',$3) RETURNING id`,[order.rows[0].id,operation.rows[0].id,user1.rows[0].id]);
+  assert.equal((await db.query(`SELECT count(*)::int AS count FROM work_order_updates WHERE work_order_id=$1`,[order.rows[0].id])).rows[0].count,2,'note e richieste ricambi restano persistenti sul relativo ordine');
+  await db.query(`UPDATE work_order_updates SET request_status='ordered',resolved_by=$1,resolved_at=now() WHERE id=$2`,[user2.rows[0].id,request.rows[0].id]);
+  await db.query(`UPDATE work_order_updates SET request_status='ready',resolved_by=$1,resolved_at=now() WHERE id=$2`,[user2.rows[0].id,request.rows[0].id]);
+  assert.equal((await db.query(`SELECT request_status FROM work_order_updates WHERE id=$1`,[request.rows[0].id])).rows[0].request_status,'ready','la richiesta ricambio avanza da ordinato a disponibile');
+  await assert.rejects(db.query(`INSERT INTO work_order_updates(work_order_id,update_type,description,quantity,request_status,created_by) VALUES($1,'parts_request','Quantità non valida',0,'open',$2)`,[order.rows[0].id,user1.rows[0].id]),error=>error.code==='23514','la quantità della richiesta deve essere positiva');
 
   const start = '2026-09-25T09:00:00Z';
   const stop = '2026-09-25T09:30:00Z';
