@@ -68,6 +68,14 @@ test('schema is repeatable and protects core workshop records', async t => {
     error => error.code === '23505',
     'un ordine può avere una sola consegna registrata'
   );
+  await db.query(`UPDATE work_orders SET status='delivered' WHERE id=$1`,[order.rows[0].id]);
+  const warranty=await db.query(`INSERT INTO warranty_cases(work_order_id,complaint,scope,created_by) VALUES($1,'Rumore dopo la sostituzione','parts_and_labor',$2) RETURNING id,status`,[order.rows[0].id,user1.rows[0].id]);
+  await db.query(`INSERT INTO warranty_events(warranty_case_id,to_status,note,created_by) VALUES($1,'received','Cliente riferisce il rumore al rientro',$2)`,[warranty.rows[0].id,user1.rows[0].id]);
+  await db.query(`UPDATE warranty_cases SET status='assessment' WHERE id=$1`,[warranty.rows[0].id]);
+  await db.query(`INSERT INTO warranty_events(warranty_case_id,from_status,to_status,note,created_by) VALUES($1,'received','assessment','Verifica iniziale avviata',$2)`,[warranty.rows[0].id,user2.rows[0].id]);
+  const warrantyTrail=await db.query(`SELECT wc.status,count(we.id)::int AS events FROM warranty_cases wc JOIN warranty_events we ON we.warranty_case_id=wc.id WHERE wc.id=$1 GROUP BY wc.id`,[warranty.rows[0].id]);
+  assert.equal(warrantyTrail.rows[0].status,'assessment','la pratica mantiene lo stato corrente indipendente dall’ordine chiuso');
+  assert.equal(warrantyTrail.rows[0].events,2,'l’apertura e gli aggiornamenti restano nello storico append-only');
   const version = 'a'.repeat(64);
   await db.query(`INSERT INTO document_acceptances(work_order_id,customer_id,document_type,document_version,accepted,accepted_by,evidence,user_id) VALUES($1,$2,'repair_terms',$3,true,'Cliente test',$4,$5)`, [order.rows[0].id,customer.rows[0].id,version,JSON.stringify({text_snapshot:'Condizioni di prova'}),user1.rows[0].id]);
   const acceptance = await db.query(`SELECT document_version,evidence::jsonb AS evidence FROM document_acceptances WHERE work_order_id=$1`, [order.rows[0].id]);

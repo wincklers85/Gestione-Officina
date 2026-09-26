@@ -452,6 +452,31 @@ CREATE TABLE IF NOT EXISTS vehicle_deliveries (
   delivered_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   user_id BIGINT REFERENCES users(id)
 );
+CREATE TABLE IF NOT EXISTS warranty_cases (
+  id BIGSERIAL PRIMARY KEY,
+  work_order_id BIGINT NOT NULL REFERENCES work_orders(id),
+  complaint TEXT NOT NULL,
+  scope TEXT NOT NULL DEFAULT 'assessment' CHECK (scope IN ('parts','labor','parts_and_labor','goodwill','assessment')),
+  status TEXT NOT NULL DEFAULT 'received' CHECK (status IN ('received','assessment','approved','denied','repair','resolved','closed')),
+  decision TEXT NOT NULL DEFAULT '',
+  resolution TEXT NOT NULL DEFAULT '',
+  received_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  due_at DATE,
+  closed_at TIMESTAMPTZ,
+  created_by BIGINT REFERENCES users(id),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS warranty_cases_status_idx ON warranty_cases(status,received_at DESC);
+CREATE INDEX IF NOT EXISTS warranty_cases_work_order_idx ON warranty_cases(work_order_id,received_at DESC);
+CREATE TABLE IF NOT EXISTS warranty_events (
+  id BIGSERIAL PRIMARY KEY,
+  warranty_case_id BIGINT NOT NULL REFERENCES warranty_cases(id),
+  from_status TEXT NOT NULL DEFAULT '',
+  to_status TEXT NOT NULL DEFAULT '',
+  note TEXT NOT NULL,
+  created_by BIGINT REFERENCES users(id),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
 CREATE TABLE IF NOT EXISTS audit_log (
   id BIGSERIAL PRIMARY KEY,
   user_id BIGINT REFERENCES users(id),
@@ -523,7 +548,7 @@ BEGIN
     'work_operations','operation_assignments','work_order_updates','time_entries','time_entry_adjustments','estimates','customer_action_tokens','customer_portal_tokens','estimate_customer_responses','estimate_lines',
     'inventory_items','stock_movements','inventory_reservations','suppliers','purchase_orders',
     'purchase_order_lines','invoices','invoice_lines','payments','quality_checks','road_tests',
-    'documents','document_acceptances','intake_photos','intake_acceptances','customer_screen_sessions','vehicle_reconstructions','privacy_requests','role_module_permissions','vehicle_deliveries','audit_log'
+    'documents','document_acceptances','intake_photos','intake_acceptances','customer_screen_sessions','vehicle_reconstructions','privacy_requests','role_module_permissions','vehicle_deliveries','warranty_cases','warranty_events','audit_log'
   ] LOOP
     EXECUTE format('ALTER TABLE %I ADD COLUMN IF NOT EXISTS workshop_id BIGINT',t);
     EXECUTE format('UPDATE %I SET workshop_id=1 WHERE workshop_id IS NULL',t);
@@ -549,7 +574,7 @@ BEGIN
     'work_operations','operation_assignments','work_order_updates','time_entries','time_entry_adjustments','estimates','customer_action_tokens','customer_portal_tokens','estimate_customer_responses','estimate_lines',
     'inventory_items','stock_movements','inventory_reservations','suppliers','purchase_orders',
     'purchase_order_lines','invoices','invoice_lines','payments','quality_checks','road_tests',
-    'documents','document_acceptances','intake_photos','intake_acceptances','customer_screen_sessions','vehicle_reconstructions','privacy_requests','role_module_permissions','vehicle_deliveries','audit_log','licenses'
+    'documents','document_acceptances','intake_photos','intake_acceptances','customer_screen_sessions','vehicle_reconstructions','privacy_requests','role_module_permissions','vehicle_deliveries','warranty_cases','warranty_events','audit_log','licenses'
   ] LOOP
     EXECUTE format('ALTER TABLE %I ENABLE ROW LEVEL SECURITY',t);
     EXECUTE format('ALTER TABLE %I FORCE ROW LEVEL SECURITY',t);
