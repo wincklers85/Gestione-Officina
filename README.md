@@ -15,6 +15,16 @@ Requisiti: Node.js 20 o successivo e PostgreSQL.
 
 Per la verifica locale esegui `npm test`: i test usano PostgreSQL WASM isolato per applicare lo schema, controllare la ripetibilità dello schema, la distinzione tra ore-persona e intervallo di calendario, pause e rettifiche timer con motivazione, prenotazioni con risorse, preventivi extra e token cliente con scadenza, richieste privacy, movimenti magazzino, la conversione Europe/Rome e i cambi DST, la persistenza del logo e dei testi accettati, e i vincoli di consegna.
 
+## Aree d’uso: computer, tablet officina e schermo cliente
+
+GO usa lo stesso servizio e lo stesso database per tre postazioni, ciascuna con un flusso distinto:
+
+- **Gestionale Windows:** accedi dal browser del PC all’indirizzo del servizio Render (ad esempio `https://go-gestione-officina.onrender.com`). Questa è la postazione completa per pianificazione, impostazioni, clienti, contabilità e report. Puoi installarla come app dal menu di Microsoft Edge, se desideri un collegamento dedicato.
+- **Tablet Android dei meccanici:** apri lo stesso indirizzo in Chrome ed entra con l’account personale del meccanico. Dopo l’accesso si apre la Postazione tablet con le lavorazioni assegnate, note, accettazione fotografica, timer personale e completamento operazione. Più tablet possono lavorare insieme; il timer è sempre attribuito alla persona che ha fatto accesso.
+- **Tablet o schermo per il cliente:** dall’accettazione genera e apri il collegamento temporaneo Schermo cliente sul dispositivo rivolto al cliente. Mostra solo condizioni, informativa, scelte e firme; scade dopo due ore. Quando è in standby puoi lasciare aperto il logo dell’officina, se l’opzione Labs Schermo cliente è attiva.
+
+La postazione tablet adatta i controlli al tocco e al formato mobile. Per proteggere i dati, non condividere un account meccanico tra persone e usa la funzione Esci quando il tablet viene ceduto ad altri. Le sessioni richiedono connettività verso il servizio Render: al momento l’applicazione non supporta il lavoro offline o la sincronizzazione differita. Fotocamera e firma disegnata richiedono un browser aggiornato; la fotocamera necessita di HTTPS e del permesso esplicito.
+
 ## Backup e ripristino PostgreSQL
 
 Il backup applicativo deve includere il database, che contiene anche il logo officina caricato. Con `pg_dump` e `pg_restore` installati, imposta `DATABASE_URL` in una sessione protetta e crea un dump cifrato a riposo secondo la procedura del titolare. Esempio per dump e ripristino controllato:
@@ -51,7 +61,7 @@ Il Blueprint non crea automaticamente un database a pagamento: la risorsa e il p
 
 ## Versioni e software house
 
-La versione corrente è **0.5.0**. Dopo l’accesso, il popup delle novità compare una sola volta per ciascuna versione sul browser utilizzato; le note restano consultabili dalla voce **Info**. La stessa pagina mostra lo stato online/offline del servizio e del database. La software house è [WinLabs Solutions](https://winlabs.onrender.com). La cronologia completa è in [`CHANGELOG.md`](CHANGELOG.md).
+La versione corrente è **0.6.0**. Dopo l’accesso, il popup delle novità compare una sola volta per ciascuna versione sul browser utilizzato; le note restano consultabili dalla voce **Info**. La stessa pagina mostra lo stato online/offline del servizio e del database. La software house è [WinLabs Solutions](https://winlabs.onrender.com). La cronologia completa è in [`CHANGELOG.md`](CHANGELOG.md).
 
 ## Stato del progetto
 

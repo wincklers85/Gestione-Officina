@@ -1,0 +1,54 @@
+/* Interfacce touch per tablet Android e postazione cliente */
+.shell-tablet{grid-template-columns:190px minmax(0,1fr);min-height:100dvh}
+.shell-tablet .sidebar{padding:14px 10px}
+.shell-tablet .brand{padding:4px 6px 14px}
+.shell-tablet .brand img{height:48px}
+.shell-tablet .sidebar nav{gap:7px}
+.shell-tablet .nav-link{min-height:50px;font-size:14px}
+.shell-tablet .main{max-width:1500px;padding-top:20px}
+.shell-tablet .topbar{align-items:center}
+.shell-tablet .topbar h1{font-size:23px}
+.shell-tablet .top-actions{display:flex;align-items:center;justify-content:flex-end;gap:10px;flex-wrap:wrap}
+.shell-tablet .global-search{display:none}
+.tablet-welcome{display:flex;justify-content:space-between;align-items:center;gap:20px;padding:22px 24px;margin-bottom:18px;background:#fff;border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow)}
+.tablet-welcome h2{font-size:clamp(24px,3vw,34px);margin:4px 0}
+.tablet-welcome p{max-width:740px;margin:6px 0;color:#596579}
+.tablet-quick-actions{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end}
+.touch-button{min-height:54px;padding:12px 18px;font-size:15px;border-radius:11px}
+.tablet-jobs-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.tablet-job-card{display:block;padding:19px;background:#fff;border:1px solid var(--line);border-radius:15px;color:var(--ink);box-shadow:var(--shadow);transition:transform .12s ease,border-color .12s ease}
+.tablet-job-card:hover{transform:translateY(-2px);border-color:#ef6b22;text-decoration:none}
+.tablet-job-head,.tablet-job-foot{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.tablet-job-card h2{margin:10px 0 0;font-size:22px}
+.tablet-customer{margin:2px 0;color:#465366;font-weight:650}
+.tablet-task{min-height:42px;color:#596579;margin:10px 0}
+.tablet-job-foot{padding-top:12px;border-top:1px solid var(--line);font-size:13px;color:#596579}
+.tablet-job-foot strong{color:#a9440b}
+.tablet-empty{grid-column:1/-1;text-align:center;padding:36px}
+.tablet-operation{display:grid;grid-template-columns:minmax(220px,1fr) minmax(260px,380px);gap:20px;padding:18px 0;border-top:1px solid var(--line)}
+.tablet-operation h3{margin:8px 0 4px;font-size:20px}
+.tablet-operation p{margin:0 0 8px;color:#596579}
+.tablet-operation-controls{display:flex;flex-wrap:wrap;align-content:center;align-items:center;gap:9px}
+.tablet-operation-controls form{margin:0;flex:1 1 100%}
+.tablet-operation-controls .button{width:100%}
+.tablet-pause-form{display:flex;gap:8px;align-items:center}
+.tablet-pause-form input{min-height:54px}
+.tablet-pause-form .button{width:auto;flex:0 0 auto}
+.tablet-timer-status{width:100%}
+@media(max-width:900px){.shell-tablet{display:block}.shell-tablet .sidebar{position:sticky;z-index:5;top:0;height:auto;padding:7px 10px;background:#fff;border-bottom:1px solid var(--line);box-shadow:0 3px 12px #1826380a}.shell-tablet .brand{display:none}.shell-tablet .sidebar nav{display:flex;overflow:auto;gap:7px}.shell-tablet .nav-link{min-height:48px;padding:9px 13px}.shell-tablet .sidebar-foot{display:none}.shell-tablet .main{padding:14px 14px calc(24px + env(safe-area-inset-bottom))}.shell-tablet .topbar{margin-bottom:14px}.shell-tablet .topbar h1{font-size:19px}.shell-tablet .eyebrow{font-size:10px}.shell-tablet .top-actions{gap:6px}.shell-tablet .system-status{font-size:11px}.shell-tablet .user-chip{font-size:11px}.tablet-welcome{align-items:flex-start;flex-direction:column;padding:18px}.tablet-quick-actions{width:100%;justify-content:flex-start}.tablet-jobs-grid{grid-template-columns:1fr}.tablet-job-card{padding:17px}.tablet-operation{grid-template-columns:1fr;gap:13px}.tablet-operation-controls{display:grid;grid-template-columns:1fr 1fr}.tablet-operation-controls form{grid-column:1/-1}.tablet-pause-form{grid-column:1/-1}.tablet-operation-controls>.tablet-timer-status{grid-column:1/-1}.tablet-operation-controls .touch-button{min-height:58px}}
+@media(max-width:520px){.shell-tablet .topbar{align-items:flex-start}.shell-tablet .topbar>div:first-child{max-width:43%}.shell-tablet .top-actions{max-width:57%;justify-content:flex-end}.shell-tablet .system-status{display:none}.tablet-welcome h2{font-size:25px}.tablet-welcome .touch-button{flex:1 1 100%;width:100%}.tablet-job-head{align-items:flex-start}.tablet-job-card h2{font-size:20px}.tablet-job-foot{align-items:flex-start;flex-direction:column}.tablet-pause-form{align-items:stretch;flex-direction:column}.tablet-pause-form .button{width:100%}}
+/* Lo schermo cliente non mostra controlli, stato o navigazione del gestionale. */
+.shell:has(.customer-screen){display:block;min-height:100dvh;background:#f4f6f8}
+.shell:has(.customer-screen) .sidebar,.shell:has(.customer-screen) .topbar{display:none}
+.shell:has(.customer-screen) .main{display:block;width:100%;max-width:none;margin:0;padding:0}
+.customer-screen{min-height:100dvh;padding:clamp(14px,3vw,38px);padding-bottom:calc(24px + env(safe-area-inset-bottom))}
+.customer-screen>header{min-height:76px}
+.customer-screen h1{font-size:clamp(27px,4vw,40px)}
+.customer-screen .client-document{padding:clamp(18px,3vw,32px)}
+.customer-screen .client-document h2{font-size:clamp(20px,2.5vw,27px)}
+.customer-screen .client-scroll{max-height:42dvh;font-size:clamp(16px,1.7vw,19px)}
+.customer-screen .client-document label{min-height:54px;align-items:center;font-size:clamp(16px,1.7vw,19px);line-height:1.45}
+.customer-screen .client-document label input[type=checkbox]{width:30px;height:30px;min-width:30px;min-height:30px}
+.customer-screen .signature-pad{height:clamp(180px,26vh,280px);touch-action:none}
+.customer-screen .button{min-height:58px;padding:13px 20px;font-size:16px}
+@media(max-width:700px){.customer-screen>header{margin-bottom:12px;padding:11px 13px}.customer-screen>header img{max-width:150px;max-height:54px}.customer-screen .client-scroll{max-height:34dvh}.customer-screen .client-document{margin:10px 0}.customer-screen .signature-pad{height:180px}}

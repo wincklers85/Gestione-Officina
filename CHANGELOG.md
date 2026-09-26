@@ -1,5 +1,14 @@
 # Registro modifiche
 
+## 0.6.0 — 26/09/2026
+
+- Aggiunta una postazione touch per più tablet Android: il meccanico vede solo i lavori assegnati al proprio account, usa il timer personale e segna le operazioni completate.
+- Aggiunta una vista tablet rapida per responsabili e accettazione, con collegamenti a presa in carico, foto e schermo firme.
+- Separata la navigazione: gestionale completo su computer Windows, flusso compatto sui tablet di officina e schermo cliente a tutto schermo per firme e consensi.
+- Il completamento di tutte le operazioni porta l’ordine al controllo qualità; il passaggio non equivale alla consegna del veicolo.
+- Aggiornati istruzioni d’uso e versione dell’applicazione.
+
+
 Le novità mostrate nel popup dell’applicazione sono legate al numero di versione: ogni utente le vede una volta per versione. La cronologia è disponibile anche nella pagina **Info**.
 
 ## 0.5.0 — 26/09/2026
