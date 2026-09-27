@@ -40,7 +40,7 @@ const releases = [{
     'I rimborsi sono tracciati senza alterare la giacenza e le pratiche sono disponibili dalla sezione Resi fornitori.'
   ]
 }, {
-  version: appVersion,
+  version: '0.11.0',
   date: '2026-09-26',
   title: 'Pratiche garanzia collegate agli interventi',
   changes: [
