@@ -137,6 +137,8 @@ CREATE TABLE IF NOT EXISTS work_order_updates (
 );
 ALTER TABLE work_order_updates DROP CONSTRAINT IF EXISTS work_order_updates_request_status_check;
 ALTER TABLE work_order_updates ADD CONSTRAINT work_order_updates_request_status_check CHECK (request_status IS NULL OR request_status IN ('open','ordered','ready','declined','used_unstocked','associated','removed'));
+ALTER TABLE work_order_updates ADD COLUMN IF NOT EXISTS inventory_item_id BIGINT;
+ALTER TABLE work_order_updates ADD COLUMN IF NOT EXISTS inventory_reservation_id BIGINT;
 CREATE INDEX IF NOT EXISTS work_order_updates_history_idx ON work_order_updates(work_order_id,created_at DESC);
 ALTER TABLE work_operations ADD COLUMN IF NOT EXISTS priority SMALLINT NOT NULL DEFAULT 3 CHECK (priority BETWEEN 1 AND 5);
 ALTER TABLE work_operations ADD COLUMN IF NOT EXISTS mechanic_instructions TEXT NOT NULL DEFAULT '';
