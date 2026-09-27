@@ -22,6 +22,7 @@ test('schema is repeatable and protects core workshop records', async t => {
 
   const user1 = await db.query(`INSERT INTO users(name,email,password_hash,role) VALUES('Mario','mario@example.test','hash','mechanic') RETURNING id`);
   const user2 = await db.query(`INSERT INTO users(name,email,password_hash,role) VALUES('Luca','luca@example.test','hash','mechanic') RETURNING id`);
+  const manager=await db.query(`INSERT INTO users(name,email,password_hash,role) VALUES('Responsabile','responsabile@example.test','hash','manager') RETURNING id`);
   const customer = await db.query(`INSERT INTO customers(name) VALUES('Cliente test') RETURNING id`);
   const vehicle = await db.query(`INSERT INTO vehicles(customer_id,plate,make,model) VALUES($1,'AA000AA','GO','Test') RETURNING id`, [customer.rows[0].id]);
   const order = await db.query(`INSERT INTO work_orders(customer_id,vehicle_id) VALUES($1,$2) RETURNING id`, [customer.rows[0].id,vehicle.rows[0].id]);
@@ -59,6 +60,20 @@ test('schema is repeatable and protects core workshop records', async t => {
   assert.equal(paused.rows[0].person_seconds, 900, 'la pausa non viene conteggiata nel tempo lavorato');
   assert.equal(paused.rows[0].elapsed_seconds, 1200, 'l’intervallo conserva la durata di calendario');
 
+  const newFeatures=await db.query(`SELECT (SELECT count(*) FROM information_schema.columns WHERE table_name='work_operations' AND column_name IN ('priority','mechanic_instructions'))::int AS priority_fields,(SELECT count(*) FROM information_schema.columns WHERE table_name='time_entries' AND column_name IN ('auto_stopped','out_of_hours_notified_at'))::int AS timer_fields,(SELECT count(*) FROM information_schema.tables WHERE table_name IN ('calendar_reminders','user_module_permissions','tablet_devices'))::int AS new_tables`);
+  assert.equal(newFeatures.rows[0].priority_fields,2,'priorità e istruzioni sono persistenti sulle lavorazioni');
+  assert.equal(newFeatures.rows[0].timer_fields,2,'gli arresti automatici e avvisi sono persistenti');
+  assert.equal(newFeatures.rows[0].new_tables,3,'promemoria, permessi individuali e tablet sono persistenti');
+  await db.query(`UPDATE work_order_updates SET request_status='used_unstocked' WHERE id=$1`,[request.rows[0].id]);
+  assert.equal((await db.query('SELECT request_status FROM work_order_updates WHERE id=$1',[request.rows[0].id])).rows[0].request_status,'used_unstocked','i ricambi usati fuori magazzino hanno uno stato tracciato');
+  const overnight=await db.query(`INSERT INTO time_entries(operation_id,user_id,started_at) VALUES($1,$2,'2020-03-20T12:00:00Z') RETURNING id`,[operation.rows[0].id,manager.rows[0].id]);
+  await db.exec(`WITH due AS (SELECT t.id,t.user_id,t.operation_id,(date_trunc('day',t.started_at AT TIME ZONE 'Europe/Rome')+interval '1 day') AT TIME ZONE 'Europe/Rome' AS cutoff FROM time_entries t WHERE t.stopped_at IS NULL AND now()>=(date_trunc('day',t.started_at AT TIME ZONE 'Europe/Rome')+interval '1 day') AT TIME ZONE 'Europe/Rome' FOR UPDATE),stopped AS (UPDATE time_entries t SET stopped_at=d.cutoff,paused_at=NULL,auto_stopped=TRUE FROM due d WHERE t.id=d.id RETURNING t.id,t.user_id,t.operation_id,t.stopped_at) INSERT INTO user_notifications(workshop_id,user_id,notification_type,title,message,work_order_id,time_entry_id) SELECT manager.workshop_id,manager.id,'timer_auto_stopped','Timer fermato automaticamente',worker.name||' non ha fermato il timer',w.id,stopped.id FROM stopped JOIN users worker ON worker.id=stopped.user_id JOIN work_operations o ON o.id=stopped.operation_id JOIN work_orders w ON w.id=o.work_order_id JOIN users manager ON manager.workshop_id=worker.workshop_id AND manager.active AND manager.role IN ('owner','admin','manager')`);
+  const overnightState=await db.query('SELECT stopped_at,auto_stopped FROM time_entries WHERE id=$1',[overnight.rows[0].id]);
+  assert.equal(overnightState.rows[0].auto_stopped,true,'il timer oltre mezzanotte viene chiuso dal processo schedulato');
+  assert.equal((await db.query(`SELECT count(*)::int AS n FROM user_notifications WHERE user_id=$1 AND time_entry_id=$2 AND notification_type='timer_auto_stopped'`,[manager.rows[0].id,overnight.rows[0].id])).rows[0].n,1,'il responsabile riceve una sola notifica per quel timer arrestato');
+  const reminder=await db.query(`INSERT INTO calendar_reminders(workshop_id,title,message,remind_at,created_by) VALUES(1,'Promemoria test','Controllare veicolo','2020-03-20T12:00:00Z',$1) RETURNING id`,[manager.rows[0].id]);
+  await db.exec(`WITH due AS (SELECT r.* FROM calendar_reminders r WHERE r.delivered_at IS NULL AND r.remind_at<=now() FOR UPDATE SKIP LOCKED),sent AS (UPDATE calendar_reminders r SET delivered_at=now() FROM due d WHERE r.id=d.id RETURNING d.id,d.workshop_id,d.user_id,d.title,d.message) INSERT INTO user_notifications(workshop_id,user_id,notification_type,title,message) SELECT s.workshop_id,u.id,'calendar_reminder',s.title,s.message FROM sent s JOIN users u ON u.workshop_id=s.workshop_id AND u.active AND (s.user_id IS NULL OR u.id=s.user_id)`);
+  assert.equal((await db.query('SELECT delivered_at FROM calendar_reminders WHERE id=$1',[reminder.rows[0].id])).rows[0].delivered_at===null,false,'i promemoria dovuti vengono inviati una sola volta alle sessioni utente');
   const timerIndex = await db.query(`SELECT indexdef FROM pg_indexes WHERE indexname='one_active_timer_per_user'`);
   assert.match(timerIndex.rows[0].indexdef, /UNIQUE.*\(user_id\).*stopped_at IS NULL/i, 'lo schema deve dichiarare un solo timer attivo per meccanico');
 

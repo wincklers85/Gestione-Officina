@@ -94,3 +94,6 @@
 @media(orientation:landscape) and (max-height:560px){.mechanic-appbar{min-height:58px}.shell-mechanic .main{padding-top:12px}.mechanic-dashboard-head{padding:15px 20px}.mechanic-job-card{min-height:175px}.mechanic-operation-controls .button{min-height:58px}.mechanic-clock{font-size:34px}}
 
 .shell-mechanic .mechanic-signature-hidden{display:none!important}
+
+/* Touch interface del meccanico: arancione GO, priorità e azioni leggibili. */
+.shell-mechanic{background:#fff8f3}.shell-mechanic .mechanic-appbar{border-bottom:3px solid #ef6b22}.shell-mechanic .mechanic-job-card{border-color:#f0b38e;background:#fff;box-shadow:0 5px 16px #bf4e1010}.shell-mechanic .mechanic-job-card .tablet-job-foot strong{color:#b7470b}.shell-mechanic .mechanic-operation{border-color:#f0b38e}.shell-mechanic .mechanic-operation-controls .button.primary,.shell-mechanic .tablet-update-forms .button.primary{background:#e85c13;border-color:#d94f08;color:#fff}.shell-mechanic .mechanic-operation-controls .button{border-radius:13px}.shell-mechanic .mechanic-timer{border-color:#f4c5a7;background:#fff3eb}.shell-mechanic .mechanic-clock.running{color:#b7470b}

@@ -1,3 +1,13 @@
+# Changelog
+
+## 0.14.0 — 27/09/2026
+
+- Gli orari e i giorni di apertura dell’officina regolano gli avvisi dei timer; oltre la chiusura compare un avviso e i timer lasciati attivi si fermano alla mezzanotte di Roma, con notifica ai responsabili al successivo accesso.
+- Il responsabile può ordinare le lavorazioni per priorità e inviare indicazioni che arrivano al tablet con una notifica in tempo reale.
+- I meccanici possono chiedere ricambi anche quando non sono presenti in magazzino; responsabile e ufficio li associano a una riserva, registrano un uso fuori magazzino o archiviano la richiesta mantenendo la cronologia.
+- Aggiunti promemoria con data e ora per PC e tablet, collegamento dei tablet tramite QR univoco revocabile e permessi individuali per modulo.
+- La postazione del meccanico usa controlli touch più ampi e una palette GO arancione; aggiunta una schermata di avvio.
+
 # Registro modifiche
 
 ## 0.13.0 — 27/09/2026
