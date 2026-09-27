@@ -1,4 +1,15 @@
 document.addEventListener('DOMContentLoaded',()=>{
+  const rowUrl=row=>row.dataset.rowHref;
+  document.addEventListener('click',event=>{
+    const row=event.target.closest('tr[data-row-href]');
+    if(!row||event.target.closest('a,button,input,select,textarea,form,label'))return;
+    window.location.assign(rowUrl(row));
+  });
+  document.addEventListener('keydown',event=>{
+    const row=event.target.closest?.('tr[data-row-href]');
+    if(!row||!['Enter',' '].includes(event.key)||event.target.closest('a,button,input,select,textarea,form,label'))return;
+    event.preventDefault();window.location.assign(rowUrl(row));
+  });
   const fullscreenButton=document.querySelector('#mechanic-fullscreen');
   if(fullscreenButton){
     const label=fullscreenButton.querySelector('span');

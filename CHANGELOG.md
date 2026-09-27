@@ -1,5 +1,13 @@
 # Registro modifiche
 
+## 0.13.0 — 27/09/2026
+
+- Le righe delle auto e degli ordini aprono la scheda cliccando tutta la riga, anche targa, cliente e stato; la navigazione da tastiera è supportata.
+- I riquadri della dashboard aprono gli elenchi corrispondenti: ordini aperti, appuntamenti di oggi, timer aperti e articoli da riordinare. I conteggi non dipendono più dal limite delle righe mostrate e le scorte considerano le riserve.
+- Aggiunto il report di produttività per meccanico, con ore-persona, ore addebitabili, ricavo manodopera stimato e costo interno, filtrato per date.
+- La contribuzione riportata considera solo la manodopera registrata e non viene presentata come margine totale dell’officina.
+
+
 ## 0.12.0 — 26/09/2026
 
 - Aggiunta la sezione **Resi fornitori** per aprire una pratica di ricambio difettoso collegata al fornitore, all’articolo e, se disponibile, all’ordine d’acquisto originale.
@@ -93,4 +101,4 @@ Le novità mostrate nel popup dell’applicazione sono legate al numero di versi
 
 ## 0.1.0
 
-Prima versione del gestionale GO Gestione Officina.
+Prima versione del gestionale GO Ge
