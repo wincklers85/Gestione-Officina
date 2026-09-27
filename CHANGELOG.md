@@ -101,4 +101,4 @@ Le novità mostrate nel popup dell’applicazione sono legate al numero di versi
 
 ## 0.1.0
 
-Prima versione del gestionale GO Ge
+Prima versione del gestionale GO Gestione Officina.
