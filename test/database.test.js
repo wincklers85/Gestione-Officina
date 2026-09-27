@@ -14,6 +14,10 @@ test('schema is repeatable and protects core workshop records', async t => {
   await db.exec("SELECT set_config('app.platform_admin','true',false), set_config('app.workshop_id','1',false)");
   await db.exec(schema);
   await db.exec(schema);
+  await db.exec('ALTER TABLE work_order_updates DROP COLUMN inventory_item_id, DROP COLUMN inventory_reservation_id');
+  await db.exec(schema);
+  const upgradedPartColumns=await db.query(`SELECT count(*)::int AS n FROM information_schema.columns WHERE table_name='work_order_updates' AND column_name IN ('inventory_item_id','inventory_reservation_id')`);
+  assert.equal(upgradedPartColumns.rows[0].n,2,'l’aggiornamento aggiunge le colonne ricambi anche ai database già esistenti');
   await db.exec("SELECT set_config('app.platform_admin','false',false), set_config('app.workshop_id','1',false)");
   const logoBytes = Buffer.from([137,80,78,71,13,10,26,10]);
   await db.query(`UPDATE workshop_settings SET logo_data=$1,logo_mime='image/png' WHERE id=1`, [logoBytes]);

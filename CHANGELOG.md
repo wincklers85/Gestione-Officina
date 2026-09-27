@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.14.1 — 27/09/2026
+
+- La migrazione aggiunge in modo sicuro le colonne di associazione ricambio anche alle officine già presenti prima della versione 0.14.
+
 ## 0.14.0 — 27/09/2026
 
 - Gli orari e i giorni di apertura dell’officina regolano gli avvisi dei timer; oltre la chiusura compare un avviso e i timer lasciati attivi si fermano alla mezzanotte di Roma, con notifica ai responsabili al successivo accesso.
