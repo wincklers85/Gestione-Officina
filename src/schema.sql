@@ -23,6 +23,9 @@ CREATE TABLE IF NOT EXISTS workshop_settings (
   repair_terms TEXT NOT NULL DEFAULT '',
   privacy_notice TEXT NOT NULL DEFAULT '',
   document_prefix TEXT NOT NULL DEFAULT 'GO',
+  opening_time TIME NOT NULL DEFAULT '08:00',
+  closing_time TIME NOT NULL DEFAULT '18:00',
+  working_days SMALLINT[] NOT NULL DEFAULT ARRAY[1,2,3,4,5]::smallint[],
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 ALTER TABLE workshop_settings ADD COLUMN IF NOT EXISTS repair_terms TEXT NOT NULL DEFAULT '';
@@ -32,6 +35,9 @@ ALTER TABLE workshop_settings ADD COLUMN IF NOT EXISTS logo_data BYTEA;
 ALTER TABLE workshop_settings ADD COLUMN IF NOT EXISTS logo_mime TEXT NOT NULL DEFAULT 'image/png';
 ALTER TABLE workshop_settings ADD COLUMN IF NOT EXISTS labs_3d_enabled BOOLEAN NOT NULL DEFAULT FALSE;
 ALTER TABLE workshop_settings ADD COLUMN IF NOT EXISTS customer_display_enabled BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE workshop_settings ADD COLUMN IF NOT EXISTS opening_time TIME NOT NULL DEFAULT '08:00';
+ALTER TABLE workshop_settings ADD COLUMN IF NOT EXISTS closing_time TIME NOT NULL DEFAULT '18:00';
+ALTER TABLE workshop_settings ADD COLUMN IF NOT EXISTS working_days SMALLINT[] NOT NULL DEFAULT ARRAY[1,2,3,4,5]::smallint[];
 CREATE TABLE IF NOT EXISTS workshop_resources (
   id BIGSERIAL PRIMARY KEY,
   name TEXT NOT NULL,
@@ -121,13 +127,19 @@ CREATE TABLE IF NOT EXISTS work_order_updates (
   description TEXT NOT NULL,
   quantity NUMERIC(10,2),
   request_status TEXT CHECK (request_status IS NULL OR request_status IN ('open','ordered','ready','declined')),
+  inventory_item_id BIGINT,
+  inventory_reservation_id BIGINT,
   created_by BIGINT REFERENCES users(id),
   resolved_by BIGINT REFERENCES users(id),
   resolved_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   CHECK ((update_type='note' AND quantity IS NULL AND request_status IS NULL) OR (update_type='parts_request' AND quantity>0 AND request_status IS NOT NULL))
 );
+ALTER TABLE work_order_updates DROP CONSTRAINT IF EXISTS work_order_updates_request_status_check;
+ALTER TABLE work_order_updates ADD CONSTRAINT work_order_updates_request_status_check CHECK (request_status IS NULL OR request_status IN ('open','ordered','ready','declined','used_unstocked','associated','removed'));
 CREATE INDEX IF NOT EXISTS work_order_updates_history_idx ON work_order_updates(work_order_id,created_at DESC);
+ALTER TABLE work_operations ADD COLUMN IF NOT EXISTS priority SMALLINT NOT NULL DEFAULT 3 CHECK (priority BETWEEN 1 AND 5);
+ALTER TABLE work_operations ADD COLUMN IF NOT EXISTS mechanic_instructions TEXT NOT NULL DEFAULT '';
 CREATE TABLE IF NOT EXISTS time_entries (
   id BIGSERIAL PRIMARY KEY,
   operation_id BIGINT NOT NULL REFERENCES work_operations(id),
@@ -140,6 +152,8 @@ CREATE TABLE IF NOT EXISTS time_entries (
   bill_rate NUMERIC(10,2) NOT NULL DEFAULT 0,
   internal_cost_rate NUMERIC(10,2) NOT NULL DEFAULT 0,
   adjusted_seconds INTEGER,
+  auto_stopped BOOLEAN NOT NULL DEFAULT FALSE,
+  out_of_hours_notified_at TIMESTAMPTZ,
   note TEXT NOT NULL DEFAULT '',
   correction_reason TEXT NOT NULL DEFAULT ''
 );
@@ -149,7 +163,55 @@ ALTER TABLE time_entries ADD COLUMN IF NOT EXISTS billable BOOLEAN NOT NULL DEFA
 ALTER TABLE time_entries ADD COLUMN IF NOT EXISTS bill_rate NUMERIC(10,2) NOT NULL DEFAULT 0;
 ALTER TABLE time_entries ADD COLUMN IF NOT EXISTS internal_cost_rate NUMERIC(10,2) NOT NULL DEFAULT 0;
 ALTER TABLE time_entries ADD COLUMN IF NOT EXISTS adjusted_seconds INTEGER;
+ALTER TABLE time_entries ADD COLUMN IF NOT EXISTS auto_stopped BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE time_entries ADD COLUMN IF NOT EXISTS out_of_hours_notified_at TIMESTAMPTZ;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS internal_hourly_cost NUMERIC(10,2) NOT NULL DEFAULT 0;
+CREATE TABLE IF NOT EXISTS user_notifications (
+  id BIGSERIAL PRIMARY KEY,
+  workshop_id BIGINT NOT NULL DEFAULT 1,
+  user_id BIGINT NOT NULL REFERENCES users(id),
+  notification_type TEXT NOT NULL,
+  title TEXT NOT NULL,
+  message TEXT NOT NULL,
+  work_order_id BIGINT REFERENCES work_orders(id),
+  time_entry_id BIGINT REFERENCES time_entries(id),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  acknowledged_at TIMESTAMPTZ
+);
+CREATE INDEX IF NOT EXISTS user_notifications_pending_idx ON user_notifications(workshop_id,user_id,acknowledged_at,created_at DESC);
+CREATE TABLE IF NOT EXISTS calendar_reminders (
+  id BIGSERIAL PRIMARY KEY,
+  workshop_id BIGINT NOT NULL DEFAULT 1,
+  user_id BIGINT REFERENCES users(id),
+  title TEXT NOT NULL,
+  message TEXT NOT NULL,
+  remind_at TIMESTAMPTZ NOT NULL,
+  delivered_at TIMESTAMPTZ,
+  created_by BIGINT REFERENCES users(id),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS calendar_reminders_due_idx ON calendar_reminders(remind_at) WHERE delivered_at IS NULL;
+CREATE TABLE IF NOT EXISTS user_module_permissions (
+  workshop_id BIGINT NOT NULL DEFAULT 1,
+  user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  module TEXT NOT NULL,
+  allowed BOOLEAN NOT NULL DEFAULT TRUE,
+  updated_by BIGINT REFERENCES users(id),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY(user_id,module)
+);
+CREATE TABLE IF NOT EXISTS tablet_devices (
+  id BIGSERIAL PRIMARY KEY,
+  workshop_id BIGINT NOT NULL DEFAULT 1,
+  device_name TEXT NOT NULL,
+  token_hash TEXT NOT NULL UNIQUE,
+  allowed_modules TEXT[] NOT NULL DEFAULT ARRAY['tablet','orders','inventory']::TEXT[],
+  created_by BIGINT REFERENCES users(id),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  last_seen_at TIMESTAMPTZ,
+  revoked_at TIMESTAMPTZ
+);
+CREATE INDEX IF NOT EXISTS tablet_devices_workshop_idx ON tablet_devices(workshop_id,revoked_at,id);
 CREATE TABLE IF NOT EXISTS time_entry_adjustments (
   id BIGSERIAL PRIMARY KEY,
   time_entry_id BIGINT NOT NULL REFERENCES time_entries(id),
@@ -579,7 +641,7 @@ BEGIN
     'work_operations','operation_assignments','work_order_updates','time_entries','time_entry_adjustments','estimates','customer_action_tokens','customer_portal_tokens','estimate_customer_responses','estimate_lines',
     'inventory_items','stock_movements','inventory_reservations','suppliers','purchase_orders',
     'purchase_order_lines','invoices','invoice_lines','payments','quality_checks','road_tests',
-    'documents','document_acceptances','intake_photos','intake_acceptances','customer_screen_sessions','vehicle_reconstructions','privacy_requests','role_module_permissions','vehicle_deliveries','warranty_cases','warranty_events','supplier_return_cases','supplier_return_events','audit_log'
+    'documents','document_acceptances','intake_photos','intake_acceptances','customer_screen_sessions','vehicle_reconstructions','privacy_requests','role_module_permissions','user_notifications','calendar_reminders','user_module_permissions','tablet_devices','vehicle_deliveries','warranty_cases','warranty_events','supplier_return_cases','supplier_return_events','audit_log'
   ] LOOP
     EXECUTE format('ALTER TABLE %I ADD COLUMN IF NOT EXISTS workshop_id BIGINT',t);
     EXECUTE format('UPDATE %I SET workshop_id=1 WHERE workshop_id IS NULL',t);
@@ -605,7 +667,7 @@ BEGIN
     'work_operations','operation_assignments','work_order_updates','time_entries','time_entry_adjustments','estimates','customer_action_tokens','customer_portal_tokens','estimate_customer_responses','estimate_lines',
     'inventory_items','stock_movements','inventory_reservations','suppliers','purchase_orders',
     'purchase_order_lines','invoices','invoice_lines','payments','quality_checks','road_tests',
-    'documents','document_acceptances','intake_photos','intake_acceptances','customer_screen_sessions','vehicle_reconstructions','privacy_requests','role_module_permissions','vehicle_deliveries','warranty_cases','warranty_events','supplier_return_cases','supplier_return_events','audit_log','licenses'
+    'documents','document_acceptances','intake_photos','intake_acceptances','customer_screen_sessions','vehicle_reconstructions','privacy_requests','role_module_permissions','user_notifications','calendar_reminders','user_module_permissions','tablet_devices','vehicle_deliveries','warranty_cases','warranty_events','supplier_return_cases','supplier_return_events','audit_log','licenses'
   ] LOOP
     EXECUTE format('ALTER TABLE %I ENABLE ROW LEVEL SECURITY',t);
     EXECUTE format('ALTER TABLE %I FORCE ROW LEVEL SECURITY',t);

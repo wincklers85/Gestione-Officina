@@ -1,4 +1,29 @@
 document.addEventListener('DOMContentLoaded',()=>{
+  const splash=document.querySelector('#go-splash');if(splash)window.setTimeout(()=>{splash.classList.add('is-hidden');window.setTimeout(()=>splash.remove(),350);},350);
+  const flashDialog=document.querySelector('#flash-dialog');
+  if(flashDialog&&typeof flashDialog.showModal==='function'){
+    flashDialog.querySelector('[data-dismiss-flash]')?.addEventListener('click',()=>flashDialog.close());
+    flashDialog.showModal();
+  }
+  let notificationDialog=null,notificationIds=[];
+  const checkNotifications=async()=>{
+    if(!document.querySelector('meta[name="csrf-token"]'))return;
+    try{
+      const response=await fetch('/api/notifications',{cache:'no-store'});
+      if(!response.ok)return;
+      const data=await response.json();
+      if(!data.notifications?.length||notificationDialog?.open)return;
+      notificationIds=data.notifications.map(n=>n.id);
+      notificationDialog=document.createElement('dialog');notificationDialog.className='notification-dialog';
+      const title=document.createElement('h2');title.textContent='Avviso per la postazione';notificationDialog.append(title);
+      for(const item of data.notifications){const article=document.createElement('article'),head=document.createElement('strong'),message=document.createElement('p');head.textContent=item.title;message.textContent=item.message;article.append(head,message);if(item.work_order_id){const link=document.createElement('a');link.className='button small';link.href=`/work-orders/${item.work_order_id}`;link.textContent=`Apri GO-${item.work_order_id}`;article.append(link);}notificationDialog.append(article);}
+      const button=document.createElement('button');button.type='button';button.className='button primary';button.textContent='Ho capito';notificationDialog.append(button);document.body.append(notificationDialog);
+      const acknowledge=async()=>{await Promise.all(notificationIds.map(id=>fetch(`/notifications/${id}/acknowledge`,{method:'POST',headers:{'X-CSRF-Token':document.querySelector('meta[name="csrf-token"]')?.content||''}}).catch(()=>{})));};
+      button.addEventListener('click',()=>notificationDialog.close());notificationDialog.addEventListener('close',()=>{acknowledge();notificationDialog.remove();notificationDialog=null;});
+      notificationDialog.showModal();
+    }catch{}
+  };
+  checkNotifications();window.setInterval(checkNotifications,20000);
   const rowUrl=row=>row.dataset.rowHref;
   document.addEventListener('click',event=>{
     const row=event.target.closest('tr[data-row-href]');
