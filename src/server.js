@@ -483,21 +483,22 @@ app.get('/work-orders/:id',needAuth,async(req,res,next)=>{
     let cardIndex=0;
     body=body.replace(/<section class="card">([\s\S]*?)<\/section>/g,(whole,inner)=>{
       const text=inner.toLowerCase();
+      const heading=(inner.match(/<h[23][^>]*>([\s\S]*?)<\/h[23]>/i)?.[1]||'').replace(/<[^>]+>/g,' ').toLowerCase().replace(/\s+/g,' ').trim();
       let key=cardStages[cardIndex++]||'intake';
-      if(text.includes('ordine go-')||text.includes('dati di accettazione')||text.includes('condizioni e informativa')||text.includes('foto e documenti'))key='intake';
-      else if(text.includes('diagnosi iniziale')||text.includes('ispezione e preventivo'))key='inspection';
-      else if(text.includes('ricambi del lavoro'))key='parts';
-      else if(text.includes('lavorazioni e timer')||text.includes('note tecniche'))key='repair';
-      else if(text.includes('controllo qualità'))key='quality';
-      else if(text.includes('fattura e incasso'))key='billing';
-      else if(text.includes('consegna'))key='delivery';
+      if(text.includes(`ordine go-${w.id}`)||heading.startsWith('dati di accettazione')||heading.startsWith('condizioni e informativa')||heading.startsWith('foto e documenti'))key='intake';
+      else if(heading.startsWith('lavorazioni e timer')||heading.startsWith('note tecniche'))key='repair';
+      else if(heading.startsWith('diagnosi iniziale')||heading.startsWith('ispezione e preventivo'))key='inspection';
+      else if(heading.startsWith('ricambi del lavoro'))key='parts';
+      else if(heading.startsWith('controllo qualità'))key='quality';
+      else if(heading.startsWith('fattura e incasso'))key='billing';
+      else if(heading.startsWith('consegna'))key='delivery';
       const state=workflowState.find(step=>step.key===key);
       return `<section class="card workflow-step-card" data-workflow-step="${key}" data-workflow-unlocked="${state?.unlocked?'true':'false'}" data-workflow-complete="${state?.complete?'true':'false'}">${inner}</section>`;
     });
     const actions=workflowState.map(step=>{
       const generic=['intake','inspection','parts','repair'].includes(step.key);
       if(step.complete)return `<form class="workflow-step-action" data-step-action="${step.key}" method="post" action="/work-orders/${w.id}/workflow/${step.key}/unlock" hidden>${formToken(req)}<p class="muted">Completata${step.completedByName?` da ${esc(step.completedByName)}`:''}${step.completedAt?` · ${fmtDate(step.completedAt)}`:''}.</p>${step.reopenedAt?`<p class="muted">Ultima riapertura${step.reopenedByName?` da ${esc(step.reopenedByName)}`:''} · ${fmtDate(step.reopenedAt)}.</p>`:''}${canUnlock&&step.key!=='delivery'?`<button class="button">Sblocca e modifica</button>`:''}</form>`;
-      if(step.unlocked&&generic)return `<form class="workflow-step-action" data-step-action="${step.key}" method="post" action="/work-orders/${w.id}/workflow/${step.key}/complete" hidden>${formToken(req)}<button class="button primary">Salva e apri la fase successiva</button></form>`;
+      if(step.unlocked&&generic)return `<form class="workflow-step-action" data-step-action="${step.key}" method="post" action="/work-orders/${w.id}/workflow/${step.key}/complete" hidden>${formToken(req)}<button class="button primary">${({intake:'Completa accettazione',inspection:'Completa ispezione e apri Ricambi',parts:'Completa ricambi e apri Riparazione',repair:'Completa riparazione e apri Collaudo'})[step.key]||'Completa la fase'}</button></form>`;
       if(step.unlocked)return `<div class="workflow-step-action" data-step-action="${step.key}" hidden><p class="muted">Completa i dati di questa fase; il passaggio successivo si sblocca al salvataggio previsto.</p></div>`;
       return `<div class="workflow-step-action" data-step-action="${step.key}" hidden><p class="muted">Scheda non ancora disponibile.</p></div>`;
     }).join('');
@@ -506,6 +507,98 @@ app.get('/work-orders/:id',needAuth,async(req,res,next)=>{
     body=body.replace('<section class="card workflow-step-card"',`${workflowPanel}<section class="card workflow-step-card"`);
     res.send(page(`Ordine GO-${w.id}`,body,req.session.user,'orders'));
   } catch(e){next(e);}
+});
+app.post('/work-orders/:id/intake',needAuth,allow('owner','admin','manager','reception'),async(req,res)=>{
+  const c=await pool.connect();
+  try{
+    const mileage=Number(req.body.mileage_in),complaint=String(req.body.complaint||'').trim();
+    if(!Number.isInteger(mileage)||mileage<0||complaint.length<3)throw new Error('Inserisci chilometraggio e problema segnalato.');
+    await c.query('BEGIN');
+    const order=await c.query(`SELECT id,status FROM work_orders WHERE id=$1 FOR UPDATE`,[req.params.id]);
+    if(!order.rowCount)throw new Error('Ordine non trovato.');
+    if(['invoiced','delivered','closed','cancelled'].includes(order.rows[0].status))throw new Error('L’accettazione non è modificabile dopo fatturazione o chiusura.');
+    await c.query(`UPDATE work_orders SET mileage_in=$1,fuel_level=$2,target_date=$3,complaint=$4,notes=$5,updated_at=now() WHERE id=$6`,[mileage,String(req.body.fuel_level||'').slice(0,80),req.body.target_date||null,complaint,String(req.body.notes||'').slice(0,5000),req.params.id]);
+    await c.query(`INSERT INTO audit_log(user_id,action,entity_type,entity_id,details) VALUES($1,'workflow_intake_updated','work_order',$2,$3)`,[req.session.user.id,String(req.params.id),JSON.stringify({mileage_in:mileage,complaint})]);
+    await c.query('COMMIT');flash(req,'Dati di accettazione salvati.');res.redirect(`/work-orders/${req.params.id}?tab=intake`);
+  }catch(e){await c.query('ROLLBACK');flash(req,e.message);res.redirect(`/work-orders/${req.params.id}?tab=intake`);}finally{c.release();}
+});
+app.post('/work-orders/:id/inspection',needAuth,allow('owner','admin','manager','reception'),async(req,res)=>{
+  const c=await pool.connect();
+  try{
+    const diagnosis=String(req.body.diagnosis||'').trim();if(diagnosis.length<3||diagnosis.length>5000)throw new Error('Inserisci una diagnosi di almeno 3 caratteri.');
+    await c.query('BEGIN');
+    const order=await c.query(`SELECT id,status FROM work_orders WHERE id=$1 FOR UPDATE`,[req.params.id]);
+    if(!order.rowCount)throw new Error('Ordine non trovato.');
+    if(['invoiced','delivered','closed','cancelled'].includes(order.rows[0].status))throw new Error('L’ispezione non è modificabile dopo fatturazione o chiusura.');
+    const operation=await c.query(`SELECT id FROM work_operations WHERE work_order_id=$1 ORDER BY id LIMIT 1 FOR UPDATE`,[req.params.id]);
+    if(!operation.rowCount)await c.query(`INSERT INTO work_operations(work_order_id,title,description) VALUES($1,'Diagnosi iniziale',$2)`,[req.params.id,diagnosis]);
+    else await c.query(`UPDATE work_operations SET description=$1 WHERE id=$2`,[diagnosis,operation.rows[0].id]);
+    if(order.rows[0].status==='checked_in')await c.query(`UPDATE work_orders SET status='diagnosis',updated_at=now() WHERE id=$1`,[req.params.id]);
+    await c.query(`INSERT INTO audit_log(user_id,action,entity_type,entity_id,details) VALUES($1,'workflow_inspection_updated','work_order',$2,$3)`,[req.session.user.id,String(req.params.id),JSON.stringify({diagnosis})]);
+    await c.query('COMMIT');flash(req,'Diagnosi salvata. Completa i requisiti della fase e apri Ricambi.');res.redirect(`/work-orders/${req.params.id}?tab=inspection`);
+  }catch(e){await c.query('ROLLBACK');flash(req,e.message);res.redirect(`/work-orders/${req.params.id}?tab=inspection`);}finally{c.release();}
+});
+app.post('/work-orders/:id/workflow/:step/complete',needAuth,allow('owner','admin','manager','reception','warehouse','mechanic'),async(req,res)=>{
+  const step=String(req.params.step||'');const c=await pool.connect();
+  try{
+    if(!['intake','inspection','parts','repair'].includes(step))throw new Error('Questa fase si completa dal controllo dedicato.');
+    await c.query('BEGIN');
+    const order=await c.query(`SELECT id,status,complaint,mileage_in FROM work_orders WHERE id=$1 FOR UPDATE`,[req.params.id]);
+    if(!order.rowCount)throw new Error('Ordine non trovato.');
+    const gate=await c.query(`SELECT is_unlocked,completed_at FROM work_order_workflow_steps WHERE work_order_id=$1 AND step_key=$2 FOR UPDATE`,[req.params.id,step]);
+    if(!gate.rowCount||!gate.rows[0].is_unlocked||gate.rows[0].completed_at)throw new Error('La scheda è bloccata o già completata.');
+    if(step==='intake'&&(Number(order.rows[0].mileage_in)<0||String(order.rows[0].complaint||'').trim().length<3))throw new Error('Completa chilometraggio e problema segnalato nell’accettazione.');
+    if(step==='inspection'){
+      const diagnosis=await c.query(`SELECT description,id FROM work_operations WHERE work_order_id=$1 ORDER BY id LIMIT 1 FOR UPDATE`,[req.params.id]);
+      if(!diagnosis.rowCount||String(diagnosis.rows[0].description||'').trim().length<3)throw new Error('Salva prima la diagnosi iniziale.');
+      const quote=await c.query(`SELECT status FROM estimates WHERE work_order_id=$1 AND estimate_type='initial' ORDER BY version DESC LIMIT 1`,[req.params.id]);
+      if(!quote.rowCount||quote.rows[0].status!=='approved')throw new Error('Registra l’approvazione del preventivo iniziale prima di aprire Ricambi.');
+      const pending=await c.query(`SELECT 1 FROM estimates WHERE work_order_id=$1 AND status IN ('draft','sent') LIMIT 1`,[req.params.id]);
+      if(pending.rowCount)throw new Error('Completa prima la decisione su tutti i preventivi in attesa.');
+      const timer=await c.query(`SELECT 1 FROM time_entries t JOIN work_operations o ON o.id=t.operation_id WHERE o.work_order_id=$1 AND t.stopped_at IS NULL LIMIT 1`,[req.params.id]);
+      if(timer.rowCount)throw new Error('Ferma i timer attivi prima di completare l’ispezione.');
+      await c.query(`UPDATE work_operations SET status='completed' WHERE id=$1`,[diagnosis.rows[0].id]);
+      await c.query(`UPDATE work_orders SET status='waiting_parts',updated_at=now() WHERE id=$1`,[req.params.id]);
+    }
+    if(step==='parts'){
+      const requests=await c.query(`SELECT 1 FROM work_order_updates WHERE work_order_id=$1 AND update_type='parts_request' AND request_status IN ('open','ordered') LIMIT 1`,[req.params.id]);
+      if(requests.rowCount)throw new Error('Completa o chiudi le richieste ricambi ancora aperte.');
+      await c.query(`UPDATE work_orders SET status='scheduled',updated_at=now() WHERE id=$1`,[req.params.id]);
+    }
+    if(step==='repair'){
+      const unfinished=await c.query(`SELECT title FROM work_operations WHERE work_order_id=$1 AND status<>'completed' LIMIT 1`,[req.params.id]);
+      if(unfinished.rowCount)throw new Error(`Completa la lavorazione “${unfinished.rows[0].title}” prima di passare al collaudo.`);
+      const timer=await c.query(`SELECT 1 FROM time_entries t JOIN work_operations o ON o.id=t.operation_id WHERE o.work_order_id=$1 AND t.stopped_at IS NULL LIMIT 1`,[req.params.id]);
+      if(timer.rowCount)throw new Error('Ferma i timer attivi prima di passare al collaudo.');
+      await c.query(`UPDATE work_orders SET status='quality_check',updated_at=now() WHERE id=$1`,[req.params.id]);
+    }
+    const next=await advanceWorkflow(c,req.params.id,step,req.session.user.id);
+    await c.query('COMMIT');flash(req,`Fase completata. È ora disponibile: ${workflowSteps.find(x=>x.key===next)?.label||next}.`);res.redirect(`/work-orders/${req.params.id}?tab=${next}`);
+  }catch(e){await c.query('ROLLBACK');flash(req,e.message);res.redirect(`/work-orders/${req.params.id}?tab=${step}`);}finally{c.release();}
+});
+app.post('/work-orders/:id/workflow/:step/unlock',needAuth,allow('owner','admin','manager'),async(req,res)=>{
+  const step=String(req.params.step||'');const c=await pool.connect();
+  try{
+    const index=workflowSteps.findIndex(item=>item.key===step);
+    if(index<0||step==='delivery')throw new Error('Questa scheda non può essere riaperta.');
+    await c.query('BEGIN');
+    const order=await c.query(`SELECT status FROM work_orders WHERE id=$1 FOR UPDATE`,[req.params.id]);
+    if(!order.rowCount)throw new Error('Ordine non trovato.');
+    if(['invoiced','delivered','closed','cancelled'].includes(order.rows[0].status))throw new Error('Non si possono riaprire schede dopo emissione del documento o chiusura.');
+    const gate=await c.query(`SELECT completed_at FROM work_order_workflow_steps WHERE work_order_id=$1 AND step_key=$2 FOR UPDATE`,[req.params.id,step]);
+    if(!gate.rowCount||!gate.rows[0].completed_at)throw new Error('Questa scheda non risulta completata.');
+    for(let i=index;i<workflowSteps.length;i++){
+      const item=workflowSteps[i];
+      await c.query(`UPDATE work_order_workflow_steps SET is_unlocked=$3,completed_at=NULL,completed_by=NULL,
+        unlocked_at=CASE WHEN $3 THEN now() ELSE unlocked_at END,unlocked_by=CASE WHEN $3 THEN $4::bigint ELSE unlocked_by END,
+        reopened_at=CASE WHEN $3 THEN now() ELSE reopened_at END,reopened_by=CASE WHEN $3 THEN $4::bigint ELSE reopened_by END
+        WHERE work_order_id=$1 AND step_key=$2`,[req.params.id,item.key,i===index,req.session.user.id]);
+    }
+    const resetStatus={intake:'checked_in',inspection:'diagnosis',parts:'waiting_parts',repair:'scheduled',quality:'quality_check'}[step];
+    if(resetStatus)await c.query(`UPDATE work_orders SET status=$1,updated_at=now() WHERE id=$2`,[resetStatus,req.params.id]);
+    await c.query(`INSERT INTO audit_log(user_id,action,entity_type,entity_id,details) VALUES($1,'workflow_step_reopened','work_order',$2,$3)`,[req.session.user.id,String(req.params.id),JSON.stringify({step,invalidated_steps:workflowSteps.slice(index+1).map(item=>item.key)})]);
+    await c.query('COMMIT');flash(req,'Scheda sbloccata. Le fasi successive dovranno essere completate di nuovo.');res.redirect(`/work-orders/${req.params.id}?tab=${step}`);
+  }catch(e){await c.query('ROLLBACK');flash(req,e.message);res.redirect(`/work-orders/${req.params.id}?tab=${step}`);}finally{c.release();}
 });
 app.post('/operations/:id/priority',needAuth,allow('owner','admin','manager'),async(req,res,next)=>{try{const priority=Number(req.body.priority),instructions=String(req.body.mechanic_instructions||'').trim().slice(0,500);if(!Number.isInteger(priority)||priority<1||priority>5)throw new Error('Seleziona una priorità valida.');const c=await pool.connect();try{await c.query('BEGIN');const q=await c.query(`SELECT o.work_order_id,o.priority,o.mechanic_instructions,w.id AS order_id FROM work_operations o JOIN work_orders w ON w.id=o.work_order_id WHERE o.id=$1 FOR UPDATE OF o`,[req.params.id]);if(!q.rowCount)throw new Error('Lavorazione non trovata.');const old=q.rows[0],changed=Number(old.priority)!==priority;await c.query('UPDATE work_operations SET priority=$1,mechanic_instructions=$2 WHERE id=$3',[priority,instructions,req.params.id]);if(changed||old.mechanic_instructions!==instructions){const text=`Priorità aggiornata: ${['','Urgente','Alta','Normale','Bassa','Pianificata'][priority]}.${instructions?` Nota: ${instructions}`:''}`;await c.query(`INSERT INTO user_notifications(workshop_id,user_id,notification_type,title,message,work_order_id) SELECT u.workshop_id,u.id,'work_priority_changed','Il responsabile ha aggiornato il lavoro', $1,$2 FROM operation_assignments a JOIN users u ON u.id=a.user_id WHERE a.operation_id=$3 AND u.active`,[text,old.order_id,req.params.id]);await c.query(`INSERT INTO audit_log(user_id,action,entity_type,entity_id,details) VALUES($1,'update_priority','work_operation',$2,$3)`,[req.session.user.id,String(req.params.id),JSON.stringify({from:Number(old.priority),to:priority,instructions})]);}await c.query('COMMIT');flash(req,'Priorità e indicazioni inviate alla postazione del meccanico.');res.redirect(`/work-orders/${old.order_id}`);}catch(e){await c.query('ROLLBACK');throw e;}finally{c.release();}}catch(e){flash(req,e.message);res.redirect(req.get('Referrer')||'/work-orders');}});
 app.post('/work-orders/:id/status',needAuth,async(req,res)=>{flash(req,'Lo stato viene aggiornato completando le schede del flusso.');const destination=new RegExp(`^/tablet/work-orders/${req.params.id}$`).test(String(req.body.return_to||''))?`/tablet/work-orders/${req.params.id}`:`/work-orders/${req.params.id}`;res.redirect(destination);});

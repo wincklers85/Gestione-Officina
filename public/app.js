@@ -11,11 +11,18 @@ document.addEventListener('DOMContentLoaded',()=>{
   }
   const workflow=document.querySelector('.workflow-progress-card');
   if(workflow){
-    const tabs=[...workflow.querySelectorAll('[data-workflow-tab]')],cards=[...document.querySelectorAll('.workflow-step-card')],actions=[...workflow.querySelectorAll('[data-step-action]')],title=workflow.querySelector('h2');
+    const tabs=[...workflow.querySelectorAll('[data-workflow-tab]')],rawCards=[...document.querySelectorAll('.workflow-step-card')],actions=[...workflow.querySelectorAll('[data-step-action]')],title=workflow.querySelector('h2'),groups=new Map();
+    rawCards.forEach(card=>{
+      const key=card.dataset.workflowStep;
+      let group=groups.get(key);
+      if(!group){group=document.createElement('section');group.className='card workflow-stage-content';group.dataset.workflowContent=key;card.before(group);groups.set(key,group);}
+      const section=document.createElement('div');section.className='workflow-stage-section';section.innerHTML=card.innerHTML;group.append(section);card.remove();
+    });
+    const cards=[...groups.values()];
     const activate=key=>{
       const tab=tabs.find(item=>item.dataset.workflowTab===key&&!item.disabled);if(!tab)return;
       tabs.forEach(item=>item.setAttribute('aria-selected',String(item===tab)));
-      cards.forEach(card=>{const selected=card.dataset.workflowStep===key;card.hidden=!selected;if(selected){const locked=card.dataset.workflowUnlocked!=='true';card.querySelectorAll('form').forEach(form=>{form.hidden=locked;});card.querySelectorAll('a[href*="/estimate/new"]').forEach(link=>{link.hidden=locked;});if(locked&&!card.querySelector('.workflow-readonly-note')){const note=document.createElement('p');note.className='muted workflow-readonly-note';note.textContent='Scheda completata: consultazione in sola lettura. Per modificarla, usa “Sblocca e modifica” qui sopra.';card.prepend(note);}}});
+      cards.forEach(card=>{const selected=card.dataset.workflowContent===key;card.hidden=!selected;if(selected){const state=rawCards.find(item=>item.dataset.workflowStep===key);const locked=state?.dataset.workflowUnlocked!=='true';card.querySelectorAll('form').forEach(form=>{form.hidden=locked;});card.querySelectorAll('a[href*="/estimate/new"]').forEach(link=>{link.hidden=locked;});if(locked&&!card.querySelector('.workflow-readonly-note')){const note=document.createElement('p');note.className='muted workflow-readonly-note';note.textContent='Scheda completata: consultazione in sola lettura. Per modificarla, usa “Sblocca e modifica” qui sopra.';card.prepend(note);}}});
       actions.forEach(item=>{item.hidden=item.dataset.stepAction!==key;});
       if(title)title.textContent=tab.querySelector('span')?.textContent||'';
       try{const url=new URL(window.location.href);url.searchParams.set('tab',key);window.history.replaceState(null,'',url);}catch{}

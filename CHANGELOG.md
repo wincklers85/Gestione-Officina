@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.15.1 — 28/09/2026
+
+- Corrette le rotte di salvataggio, completamento e riapertura delle schede, che causavano la risposta “Cannot POST”.
+- Riuniti i contenuti di ciascuna fase in un’unica scheda e corretta l’associazione delle lavorazioni alla fase di riparazione.
+- Resi più espliciti i pulsanti che completano ispezione, ricambi e riparazione.
+
 ## 0.15.0 — 28/09/2026
 
 - L’avanzamento del veicolo è organizzato in sette schede: accettazione, ispezione e preventivo, ricambi, riparazione, collaudo, fattura e incasso, consegna. La fase successiva si sblocca al completamento dei requisiti correnti.
