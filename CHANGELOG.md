@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.14.2 — 28/09/2026
+
+- L’auto diventa pronta solo quando tutte le lavorazioni sono completate, non ci sono timer attivi, i controlli qualità sono superati e l’ultimo test su strada è passato.
+- La chiusura ordine e l’avvio timer si coordinano con blocchi transazionali: un lavoro pronto o concluso non può essere riaperto avviando un timer.
+- Il Responsabile può avviare dalla scheda il documento gestionale e registrare pagamenti parziali o a saldo; la consegna resta disponibile solo quando il documento è saldato. Il documento non è fiscale.
+
 ## 0.14.1 — 27/09/2026
 
 - La migrazione aggiunge in modo sicuro le colonne di associazione ricambio anche alle officine già presenti prima della versione 0.14.

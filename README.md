@@ -13,7 +13,7 @@ Requisiti: Node.js 20 o successivo e PostgreSQL.
 5. Crea il primo titolare con `npm run admin:create`.
 6. Avvia il servizio con `npm start` e apri `http://localhost:10000`.
 
-Per la verifica locale esegui `npm test`: i test usano PostgreSQL WASM isolato per applicare lo schema, controllare la ripetibilità dello schema, la distinzione tra ore-persona e intervallo di calendario, pause e rettifiche timer con motivazione, prenotazioni con risorse, preventivi extra e token cliente con scadenza, riserva e scarico di ricambi in base a quantità approvate, richieste privacy, movimenti magazzino, la conversione Europe/Rome e i cambi DST, la persistenza del logo e dei testi accettati, e i vincoli di consegna.
+Per la verifica locale esegui `npm test`: i test usano PostgreSQL WASM isolato per applicare lo schema, controllare la ripetibilità dello schema, la chiusura dei lavori solo dopo operazioni, timer, checklist e test su strada, la distinzione tra ore-persona e intervallo di calendario, pause e rettifiche timer con motivazione, prenotazioni con risorse, preventivi extra e token cliente con scadenza, riserva e scarico di ricambi in base a quantità approvate, richieste privacy, movimenti magazzino, la conversione Europe/Rome e i cambi DST, la persistenza del logo e dei testi accettati, e i vincoli di consegna.
 
 ## Aree d’uso: computer, tablet officina e schermo cliente
 
