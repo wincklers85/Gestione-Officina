@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.15.4 — 28/09/2026
+
+- Ridisegnata la postazione tablet con schede operative più leggibili, gerarchia visiva più chiara, indicatori touch e timer in evidenza.
+- Aggiunto al dettaglio veicolo il percorso visuale delle sette fasi, con stato corrente, fasi completate e avanzamento automatico.
+
+
 ## 0.15.3 — 28/09/2026
 
 - Corretti l’avvio dell’applicazione e i collegamenti ai documenti dall’ambiente tablet.
