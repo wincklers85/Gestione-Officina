@@ -9,6 +9,28 @@ document.addEventListener('DOMContentLoaded',()=>{
     const refreshWarrantyPrompt=()=>{const match=map[vehicle?.value];warrantyPrompt.hidden=!match;if(match&&description)description.textContent=`Intervento originale GO-${match.orderId}, consegnato da ${match.days} giorni o meno. Scegli se aprire una pratica di garanzia oppure registrare un nuovo lavoro.`;if(choice)choice.value='new';};
     vehicle?.addEventListener('change',refreshWarrantyPrompt);refreshWarrantyPrompt();
   }
+  const newAcceptance=document.querySelector('#tablet-new-acceptance');
+  if(newAcceptance){
+    const vehicle=newAcceptance.querySelector('#tablet-existing-vehicle');
+    const vehicleFields=newAcceptance.querySelector('#tablet-new-vehicle-fields');
+    const customerMode=newAcceptance.querySelector('#tablet-customer-mode');
+    const existingCustomerFields=newAcceptance.querySelector('#tablet-existing-customer-fields');
+    const newCustomerFields=newAcceptance.querySelector('#tablet-new-customer-fields');
+    const existingCustomer=newAcceptance.querySelector('#tablet-existing-customer');
+    const refreshFields=()=>{
+      const isExistingVehicle=Boolean(vehicle?.value);
+      if(vehicleFields)vehicleFields.hidden=isExistingVehicle;
+      const isNewCustomer=customerMode?.value==='new';
+      if(existingCustomerFields)existingCustomerFields.hidden=isExistingVehicle||isNewCustomer;
+      if(newCustomerFields)newCustomerFields.hidden=isExistingVehicle||!isNewCustomer;
+      if(existingCustomer)existingCustomer.required=!isExistingVehicle&&!isNewCustomer;
+      newAcceptance.querySelectorAll('[name="new_customer_name"]').forEach(input=>input.required=!isExistingVehicle&&isNewCustomer);
+      for(const name of ['new_plate','new_make','new_model'])newAcceptance.querySelector(`[name="${name}"]`)?.toggleAttribute('required',!isExistingVehicle);
+    };
+    vehicle?.addEventListener('change',refreshFields);
+    customerMode?.addEventListener('change',refreshFields);
+    refreshFields();
+  }
   const workflow=document.querySelector('.workflow-progress-card');
   if(workflow){
     const tabs=[...workflow.querySelectorAll('[data-workflow-tab]')],rawCards=[...document.querySelectorAll('.workflow-step-card')],actions=[...workflow.querySelectorAll('[data-step-action]')],title=workflow.querySelector('h2'),groups=new Map();

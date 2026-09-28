@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.15.8 — 28/09/2026
+
+- Corretta la causa del mancato salvataggio delle foto dal Tablet: se l’accettazione è bloccata, la schermata ora indica come riaprirla e il ritorno resta nella postazione Tablet.
+- Salvataggio atomico di file, foto e annotazioni; gli errori di fase bloccata sono espliciti e non portano alla scheda PC.
+- Aggiunta la creazione di una nuova accettazione dalla Postazione Tablet. Il salvataggio di firme e consensi completa l’accettazione e sblocca Ispezione e preventivo.
+
 ## 0.15.7 — 28/09/2026
 
 - Corretto il salvataggio delle foto dal Tablet: il token di sicurezza viene inviato nell’header della richiesta multipart e il server può validarlo prima di leggere il file.

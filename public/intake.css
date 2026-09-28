@@ -39,3 +39,5 @@
  .tablet-intake-panel .station-list .button{min-height:42px;padding:8px 10px}
  .tablet-intake-panel #acceptance-form details p{max-height:30vh;font-size:13px}
 }
+.intake-lock-notice{display:flex;align-items:center;justify-content:space-between;gap:18px;border:1px solid #f2c9ae;background:#fff8f2}.intake-lock-notice p{margin:6px 0 0;color:var(--muted)}.intake-lock-notice form{flex:0 0 auto}.file-pick.is-disabled{opacity:.55;cursor:not-allowed}
+@media(max-width:700px){.intake-lock-notice{align-items:stretch;flex-direction:column}.intake-lock-notice .button{width:100%;min-height:50px}}

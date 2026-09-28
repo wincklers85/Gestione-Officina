@@ -28,6 +28,20 @@ test('accettazione salvata blocca la prima scheda e sblocca solo ispezione', asy
   assert.equal(stepState(steps[2], rows).unlocked, false);
 });
 
+test('una nuova accettazione Tablet apre la prima fase e aspetta le firme per sbloccare ispezione', async t => {
+  const db = await setup();
+  t.after(() => db.close());
+  await initializeWorkflow(db, 11, 4, { intakePending: true });
+  let rows = (await db.query('SELECT * FROM work_order_workflow_steps WHERE work_order_id=11')).rows;
+  assert.equal(stepState(steps[0], rows).unlocked, true);
+  assert.equal(stepState(steps[0], rows).complete, false);
+  assert.equal(stepState(steps[1], rows).unlocked, false);
+  assert.equal(await advanceWorkflow(db, 11, 'intake', 4), 'inspection');
+  rows = (await db.query('SELECT * FROM work_order_workflow_steps WHERE work_order_id=11')).rows;
+  assert.equal(stepState(steps[0], rows).complete, true);
+  assert.equal(stepState(steps[1], rows).unlocked, true);
+});
+
 test('completare una fase registra audit e sblocca solo quella seguente', async t => {
   const db = await setup();
   t.after(() => db.close());

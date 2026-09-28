@@ -29,10 +29,10 @@ function warrantyEligible(deliveredAt, now, warrantyDays) {
   return current >= delivered && current <= delivered + days * 24 * 60 * 60 * 1000;
 }
 
-async function initializeWorkflow(client, workOrderId, userId) {
+async function initializeWorkflow(client, workOrderId, userId, { intakePending = false } = {}) {
   for (let i = 0; i < steps.length; i += 1) {
-    const completed = i === 0;
-    const unlocked = i === 1;
+    const completed = !intakePending && i === 0;
+    const unlocked = intakePending ? i === 0 : i === 1;
     await client.query(
       `INSERT INTO work_order_workflow_steps(work_order_id,step_key,is_unlocked,completed_at,completed_by,unlocked_at,unlocked_by)
        VALUES($1,$2,$3,CASE WHEN $5 THEN now() ELSE NULL END,CASE WHEN $5 THEN $4::bigint ELSE NULL END,
