@@ -26,10 +26,12 @@ const softwareHouseUrl = 'https://winlabs.onrender.com';
 const releases = [{
   version: appVersion,
   date: '2026-09-28',
-  title: 'Accettazione Tablet in schede più ordinate',
+  title: 'Avvio rapido e avanzamento firme su Tablet',
   changes: [
+    'Il Tablet non mostra più lo splash a ogni caricamento: il timer si avvia senza una schermata sovrapposta.',
+    'Dopo il salvataggio delle firme, la postazione passa automaticamente alla fase successiva e mostra un errore chiaro se il salvataggio non riesce.',
     'La presa in carico è divisa nelle schede Veicolo e foto e Consensi e firme, per rendere più semplice l’uso su tablet e smartphone.',
-    'Il passaggio tra le schede conserva firme e dati inseriti; dopo il salvataggio riapre la conferma.',
+    'Il passaggio tra le schede conserva firme e dati inseriti; dopo il salvataggio apre direttamente il lavoro nella fase successiva.',
     'Ridisegnata la postazione tablet con schede operative più leggibili, gerarchia visiva più chiara, indicatori touch e timer in evidenza.',
     'Il dettaglio veicolo mostra il percorso delle sette fasi, evidenziando la fase corrente e quelle completate.',
     'Timer tablet: avvio, pausa, ripresa e arresto ritornano sempre alla lavorazione nel tablet, anche quando il browser non invia un indirizzo di provenienza.',
@@ -255,7 +257,8 @@ function page(title, body, user, active = '', layout = 'desktop') {
   const releaseDialog=user?`<dialog class="release-dialog" id="release-dialog" data-version="${esc(appVersion)}" aria-labelledby="release-title"><div class="release-dialog-head"><span class="eyebrow">Novità · GO ${esc(appVersion)}</span><button class="release-close" type="button" data-dismiss-release aria-label="Chiudi">×</button></div><h2 id="release-title">${esc(releases[0].title)}</h2><p>In questa versione trovi nuove funzioni per seguire il lavoro dell’officina e consultare le informazioni di sistema.</p><ul>${releases[0].changes.map(change=>`<li>${esc(change)}</li>`).join('')}</ul><div class="release-dialog-foot"><span>Realizzato da <a href="${esc(softwareHouseUrl)}" target="_blank" rel="noopener noreferrer">${esc(softwareHouse)}</a></span><button class="button primary" type="button" data-dismiss-release>Ho capito</button></div></dialog>`:'';
   const tabletLayout=layout==='tablet'||layout==='mechanic';
   const tabletTabs=tabletLayout&&user?`<nav class="tablet-app-tabs" aria-label="Sezioni postazione tablet">${[['/tablet','Lavorazioni','tablet'],['/tablet/orders','Ordini','dashboard'],['/tablet/info','Info','info']].map(([href,label,key])=>`<a ${active===key?'aria-current="page"':''} class="tablet-app-tab ${active===key?'active':''}" href="${href}"><img src="/assets/icons/${navIcons[key]}.png" alt="" aria-hidden="true"><span>${label}</span></a>`).join('')}</nav>`:'';
-  const content = `<div class="go-splash" id="go-splash" aria-hidden="true"><img src="/assets/brand/go-logo.png" alt=""><span>Gestione officina</span></div><div class="shell ${user?'':'shell-login'} ${layout==='tablet'?'shell-tablet':''} ${layout==='mechanic'?'shell-mechanic':''}">${nav}<main class="main">${tabletTabs}<header class="topbar"><div><span class="eyebrow">GO · POSTAZIONE TABLET</span><h1>${esc(title)}</h1></div>${user?`<div class="top-actions"><span class="system-status" id="system-status" data-status="checking" role="status" aria-live="polite"><i></i><span>Verifica stato…</span></span>${layout==='tablet'?`<div class="user-chip">${esc(user.name)}<span>${esc(user.role)}</span></div>`:''}</div>`:''}</header>${body}</main></div>${releaseDialog}`;
+  const splash=tabletLayout?'':'<div class="go-splash" id="go-splash" aria-hidden="true"><img src="/assets/brand/go-logo.png" alt=""><span>Gestione officina</span></div>';
+  const content = `${splash}<div class="shell ${user?'':'shell-login'} ${layout==='tablet'?'shell-tablet':''} ${layout==='mechanic'?'shell-mechanic':''}">${nav}<main class="main">${tabletTabs}<header class="topbar"><div><span class="eyebrow">GO · POSTAZIONE TABLET</span><h1>${esc(title)}</h1></div>${user?`<div class="top-actions"><span class="system-status" id="system-status" data-status="checking" role="status" aria-live="polite"><i></i><span>Verifica stato…</span></span>${layout==='tablet'?`<div class="user-chip">${esc(user.name)}<span>${esc(user.role)}</span></div>`:''}</div>`:''}</header>${body}</main></div>${releaseDialog}`;
   // Forms retrieve their CSRF token from the page-level meta tag.
   return `<!doctype html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#f3f5f7"><meta name="csrf-token" content="${esc(token)}"><title>${esc(title)} · GO Gestione Officina</title><link rel="stylesheet" href="/app.css"><link rel="stylesheet" href="/tablet.css"><script defer src="/app.js"></script></head><body>${content}</body></html>`;
 }

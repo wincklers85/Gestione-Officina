@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.15.6 — 28/09/2026
+
+- Lo splash di avvio non viene mostrato nell’ambiente Tablet, così l’avvio, la pausa e la ripresa del timer restano immediati nella postazione.
+- Dopo aver salvato le firme di accettazione, il Tablet apre direttamente il lavoro alla fase successiva; gli errori di rete o di salvataggio vengono mostrati invece di lasciare il messaggio “Salvataggio firme…” bloccato.
+
 ## 0.15.5 — 28/09/2026
 
 - Separata l’accettazione Tablet in due schede touch: **Veicolo e foto** e **Consensi e firme**, così la schermata non presenta più tutti i contenuti in un unico scorrimento.

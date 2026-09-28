@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded',()=>{
-  const splash=document.querySelector('#go-splash');if(splash)window.setTimeout(()=>{splash.classList.add('is-hidden');window.setTimeout(()=>splash.remove(),350);},350);
+  const splash=document.querySelector('#go-splash');if(splash&&!document.querySelector('.shell-tablet,.shell-mechanic'))window.setTimeout(()=>{splash.classList.add('is-hidden');window.setTimeout(()=>splash.remove(),350);},350);
   const warrantyPrompt=document.querySelector('#warranty-return-prompt');
   if(warrantyPrompt){
     const vehicle=document.querySelector('[name="vehicle_id"]');

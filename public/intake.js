@@ -179,10 +179,22 @@
     data.set('terms_signature', terms.toDataURL('image/png')); data.set('privacy_signature', privacy.toDataURL('image/png'));
     data.set('preagreed_service', q('[name="preagreed_service"]', form).value);
     data.set('preagreed_price', q('[name="preagreed_price"]', form).value);
+    const submitButton = form.querySelector('button[type="submit"],button:not([type])');
+    if (submitButton) submitButton.disabled = true;
     statusNode.textContent = 'Salvataggio firme…';
-    const response = await fetch(`/tablet/work-orders/${form.dataset.workOrder}/acceptance`, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: data });
-    const result = await response.json(); statusNode.textContent = result.message || result.error;
-    if (response.ok) window.location.reload();
+    try {
+      const response = await fetch(`/tablet/work-orders/${form.dataset.workOrder}/acceptance`, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: data });
+      let result;
+      try { result = await response.json(); }
+      catch { throw new Error('Il server non ha restituito la conferma del salvataggio. Riprova.'); }
+      if (!response.ok) { statusNode.textContent = result.error || 'Non è stato possibile salvare le firme.'; return; }
+      statusNode.textContent = 'Firme salvate. Apertura della fase successiva…';
+      window.location.assign(`/tablet/work-orders/${form.dataset.workOrder}?tab=inspection`);
+    } catch (error) {
+      statusNode.textContent = error.message || 'Connessione non disponibile. Verifica la rete e riprova.';
+    } finally {
+      if (submitButton) submitButton.disabled = false;
+    }
   });
 
   const screen = q('.customer-screen');
