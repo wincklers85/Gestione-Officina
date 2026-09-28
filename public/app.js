@@ -9,28 +9,6 @@ document.addEventListener('DOMContentLoaded',()=>{
     const refreshWarrantyPrompt=()=>{const match=map[vehicle?.value];warrantyPrompt.hidden=!match;if(match&&description)description.textContent=`Intervento originale GO-${match.orderId}, consegnato da ${match.days} giorni o meno. Scegli se aprire una pratica di garanzia oppure registrare un nuovo lavoro.`;if(choice)choice.value='new';};
     vehicle?.addEventListener('change',refreshWarrantyPrompt);refreshWarrantyPrompt();
   }
-  const newAcceptance=document.querySelector('#tablet-new-acceptance');
-  if(newAcceptance){
-    const vehicle=newAcceptance.querySelector('#tablet-existing-vehicle');
-    const vehicleFields=newAcceptance.querySelector('#tablet-new-vehicle-fields');
-    const customerMode=newAcceptance.querySelector('#tablet-customer-mode');
-    const existingCustomerFields=newAcceptance.querySelector('#tablet-existing-customer-fields');
-    const newCustomerFields=newAcceptance.querySelector('#tablet-new-customer-fields');
-    const existingCustomer=newAcceptance.querySelector('#tablet-existing-customer');
-    const refreshFields=()=>{
-      const isExistingVehicle=Boolean(vehicle?.value);
-      if(vehicleFields)vehicleFields.hidden=isExistingVehicle;
-      const isNewCustomer=customerMode?.value==='new';
-      if(existingCustomerFields)existingCustomerFields.hidden=isExistingVehicle||isNewCustomer;
-      if(newCustomerFields)newCustomerFields.hidden=isExistingVehicle||!isNewCustomer;
-      if(existingCustomer)existingCustomer.required=!isExistingVehicle&&!isNewCustomer;
-      newAcceptance.querySelectorAll('[name="new_customer_name"]').forEach(input=>input.required=!isExistingVehicle&&isNewCustomer);
-      for(const name of ['new_plate','new_make','new_model'])newAcceptance.querySelector(`[name="${name}"]`)?.toggleAttribute('required',!isExistingVehicle);
-    };
-    vehicle?.addEventListener('change',refreshFields);
-    customerMode?.addEventListener('change',refreshFields);
-    refreshFields();
-  }
   const workflow=document.querySelector('.workflow-progress-card');
   if(workflow){
     const tabs=[...workflow.querySelectorAll('[data-workflow-tab]')],rawCards=[...document.querySelectorAll('.workflow-step-card')],actions=[...workflow.querySelectorAll('[data-step-action]')],title=workflow.querySelector('h2'),groups=new Map();
@@ -76,6 +54,34 @@ document.addEventListener('DOMContentLoaded',()=>{
     }catch{}
   };
   checkNotifications();window.setInterval(checkNotifications,20000);
+  let officePrintDialog=null,activePrintRequest=null,officePrintCheckBusy=false;
+  const pollOfficePrint=async()=>{
+    if(!document.querySelector('meta[name="csrf-token"]')?.content||document.querySelector('.shell-tablet,.shell-mechanic')||document.querySelector('dialog[open]')||officePrintDialog?.open||officePrintCheckBusy)return;
+    officePrintCheckBusy=true;
+    try{
+      const response=await fetch('/api/office-print-requests',{cache:'no-store'});if(!response.ok)return;
+      const {requests=[]}=await response.json();if(!requests.length)return;
+      const item=requests[0];activePrintRequest=item;
+      const dialog=document.createElement('dialog');dialog.className='office-print-dialog';
+      const title=document.createElement('span');title.className='eyebrow';title.textContent='RICHIESTA DAL TABLET';
+      const heading=document.createElement('h2');heading.textContent='Richiesta di stampa';
+      const message=document.createElement('p');message.textContent=`Richiesta da ${item.requester} · GO-${item.work_order_id} · ${item.plate} · ${item.customer}`;
+      const status=document.createElement('p');status.className='office-print-status';status.setAttribute('role','status');
+      const actions=document.createElement('div');actions.className='office-print-actions';
+      const decline=document.createElement('button');decline.type='button';decline.className='button';decline.textContent='Rifiuta';
+      const accept=document.createElement('button');accept.type='button';accept.className='button primary';accept.textContent='Accetta e apri PDF';
+      actions.append(decline,accept);dialog.append(title,heading,message,status,actions);document.body.append(dialog);officePrintDialog=dialog;
+      const close=()=>{dialog.close();dialog.remove();officePrintDialog=null;activePrintRequest=null;};
+      const respond=async(action,button)=>{
+        const printWindow=action==='accept'?window.open('about:blank','_blank'):null;
+        decline.disabled=true;accept.disabled=true;status.textContent=action==='accept'?'Apertura del documento…':'Registrazione del rifiuto…';
+        try{const response=await fetch(`/office-print-requests/${item.id}/respond`,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded','X-CSRF-Token':document.querySelector('meta[name="csrf-token"]')?.content||''},body:new URLSearchParams({action})});const result=await response.json();if(!response.ok)throw new Error(result.error||'Non è stato possibile gestire la richiesta.');if(action==='accept'&&printWindow)printWindow.location=result.url;else if(action==='accept')window.location.assign(result.url);status.textContent=action==='accept'?'PDF aperto per la stampa.':'Richiesta rifiutata.';button.textContent='Chiudi';button.disabled=false;button.onclick=close;}
+        catch(error){if(printWindow)printWindow.close();status.textContent=error.message;decline.disabled=false;accept.disabled=false;}
+      };
+      accept.addEventListener('click',()=>respond('accept',accept));decline.addEventListener('click',()=>respond('decline',decline));dialog.addEventListener('cancel',event=>{event.preventDefault();});dialog.showModal();
+    }catch{}finally{officePrintCheckBusy=false;}
+  };
+  pollOfficePrint();window.setInterval(pollOfficePrint,12000);
   const rowUrl=row=>row.dataset.rowHref;
   document.addEventListener('click',event=>{
     const row=event.target.closest('tr[data-row-href]');

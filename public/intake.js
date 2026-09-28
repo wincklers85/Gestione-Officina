@@ -2,15 +2,73 @@
   const q = (s, root = document) => root.querySelector(s);
   const qa = (s, root = document) => [...root.querySelectorAll(s)];
   const form = q('#acceptance-form');
-  const intakeLocked = form?.dataset.locked === 'true';
-  if (intakeLocked) {
-    form.querySelectorAll('input, select, textarea, button').forEach(control => { control.disabled = true; });
-    qa('.signature-pad').forEach(canvas => { canvas.setAttribute('aria-disabled', 'true'); });
-  }
   const video = q('#intake-camera');
   let stream;
   let selectedStation = 'front';
   let marks = [];
+
+  const photoGrid = q('.intake-photo-grid[data-order]');
+  const photoItems = () => qa('.intake-photo[data-photo-id]', photoGrid);
+  let previewIndex = 0;
+  if (photoGrid) {
+    const viewer = document.createElement('dialog'); viewer.className = 'photo-viewer-dialog'; viewer.setAttribute('aria-label', 'Anteprima foto veicolo');
+    viewer.innerHTML = '<header><div><strong class="photo-viewer-plate"></strong><span class="photo-viewer-label"></span></div><button type="button" class="photo-viewer-close" aria-label="Chiudi anteprima">×</button></header><button type="button" class="photo-viewer-arrow photo-viewer-prev" aria-label="Foto precedente">‹</button><img class="photo-viewer-image" alt=""><button type="button" class="photo-viewer-arrow photo-viewer-next" aria-label="Foto successiva">›</button><footer><span class="photo-viewer-count"></span><button type="button" class="button primary photo-viewer-print">Stampa</button></footer>';
+    document.body.append(viewer);
+    const showPhoto = index => {
+      const items = photoItems(); if (!items.length) return;
+      previewIndex = (index + items.length) % items.length;
+      const item = items[previewIndex], image = q('.photo-viewer-image', viewer);
+      q('.photo-viewer-plate', viewer).textContent = photoGrid.dataset.plate || '';
+      q('.photo-viewer-label', viewer).textContent = item.dataset.label || '';
+      image.src = q('img', item).src; image.alt = `${photoGrid.dataset.plate || ''} · ${item.dataset.label || ''}`;
+      q('.photo-viewer-count', viewer).textContent = `Foto ${previewIndex + 1} di ${items.length}`;
+    };
+    const openPreview = index => { showPhoto(index); if (!viewer.open) viewer.showModal(); };
+    photoGrid.addEventListener('click', async event => {
+      const trigger = event.target.closest('[data-preview-photo],[data-delete-photo]'); if (!trigger) return;
+      const item = trigger.closest('.intake-photo');
+      if (trigger.matches('[data-preview-photo]')) { openPreview(photoItems().indexOf(item)); return; }
+      const confirmDialog = document.createElement('dialog'); confirmDialog.className = 'photo-confirm-dialog';
+      confirmDialog.innerHTML = '<h2>Eliminare questa foto?</h2><p>La fotografia verrà rimossa dall’accettazione e dal documento fotografico.</p><div><button type="button" class="button photo-cancel">Annulla</button><button type="button" class="button danger photo-confirm-delete">Elimina foto</button></div>';
+      document.body.append(confirmDialog); confirmDialog.showModal();
+      confirmDialog.querySelector('.photo-cancel').addEventListener('click', () => confirmDialog.close());
+      confirmDialog.querySelector('.photo-confirm-delete').addEventListener('click', async () => {
+        const button = confirmDialog.querySelector('.photo-confirm-delete'); button.disabled = true;
+        try {
+          const response = await fetch(`/tablet/work-orders/${photoGrid.dataset.order}/photos/${item.dataset.photoId}/delete`, {method:'POST',headers:{'X-CSRF-Token':photoGrid.dataset.csrf}});
+          const result = await response.json().catch(()=>({}));
+          if (!response.ok) throw new Error(result.error || 'Eliminazione non riuscita.');
+          confirmDialog.close(); confirmDialog.remove(); item.remove();
+          const count = photoItems().length, print = q('#open-photo-print'); if (print) print.disabled = !count;
+          if (viewer.open) { if (count) showPhoto(Math.min(previewIndex,count-1)); else viewer.close(); }
+        } catch(error) { window.alert(error.message); button.disabled = false; }
+      });
+      confirmDialog.addEventListener('close', () => confirmDialog.remove());
+    });
+    q('.photo-viewer-close', viewer).addEventListener('click', () => viewer.close());
+    q('.photo-viewer-prev', viewer).addEventListener('click', () => showPhoto(previewIndex-1));
+    q('.photo-viewer-next', viewer).addEventListener('click', () => showPhoto(previewIndex+1));
+    viewer.addEventListener('keydown', event => { if (event.key === 'ArrowLeft') showPhoto(previewIndex-1); if (event.key === 'ArrowRight') showPhoto(previewIndex+1); });
+    q('#open-photo-print')?.addEventListener('click', () => openPrintDialog());
+    q('.photo-viewer-print', viewer).addEventListener('click', () => { viewer.close(); openPrintDialog(); });
+
+    function openPrintDialog() {
+      const items = photoItems(); if (!items.length) return;
+      const modal = document.createElement('dialog'); modal.className = 'photo-print-dialog';
+      modal.innerHTML = `<form method="dialog"><header><div><span class="eyebrow">DOCUMENTI · GO-${photoGrid.dataset.order}</span><h2>Stampa fotografie</h2><p>Seleziona le foto da includere nel PDF.</p></div><button type="submit" class="photo-viewer-close" aria-label="Chiudi">×</button></header><div class="photo-print-list"></div><label class="photo-print-office"><input type="checkbox" name="send_to_office"> Invia a Ufficio per Stampa</label><p class="photo-print-status" role="status"></p><footer><button type="button" class="button photo-print-cancel">Annulla</button><button type="button" class="button primary photo-print-submit">Crea PDF</button></footer></form>`;
+      const list = modal.querySelector('.photo-print-list');
+      items.forEach((item,index) => { const label = document.createElement('label'); label.className='photo-print-option'; const check=document.createElement('input');check.type='checkbox';check.value=item.dataset.photoId;check.checked=true;const image=document.createElement('img');image.src=q('img',item).src;image.alt='';const name=document.createElement('span');name.textContent=item.dataset.label||`Foto ${index+1}`;label.append(check,image,name);list.append(label); });
+      document.body.append(modal); modal.showModal();
+      modal.querySelector('.photo-print-cancel').addEventListener('click',()=>modal.close());
+      modal.addEventListener('close',()=>modal.remove());
+      modal.querySelector('.photo-print-submit').addEventListener('click',async()=>{
+        const selected=[...modal.querySelectorAll('.photo-print-option input:checked')].map(input=>input.value),sendToOffice=modal.querySelector('[name="send_to_office"]').checked,status=modal.querySelector('.photo-print-status'),button=modal.querySelector('.photo-print-submit');
+        if(!selected.length){status.textContent='Seleziona almeno una foto.';return;}const pdfWindow=sendToOffice?null:window.open('about:blank','_blank');button.disabled=true;status.textContent='Creazione del PDF…';
+        const body=new URLSearchParams({_csrf:photoGrid.dataset.csrf,photo_ids:JSON.stringify(selected),send_to_office:String(sendToOffice)});
+        try{const response=await fetch(`/tablet/work-orders/${photoGrid.dataset.order}/photo-report`,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded','X-CSRF-Token':photoGrid.dataset.csrf},body});const result=await response.json();if(!response.ok)throw new Error(result.error||'Creazione PDF non riuscita.');status.textContent=result.message;if(!sendToOffice&&pdfWindow)pdfWindow.location=result.url;else if(!sendToOffice){const link=document.createElement('a');link.href=result.url;link.target='_blank';link.rel='noopener';link.textContent='Apri il PDF';status.append(document.createTextNode(' '),link);}const done=button.cloneNode(true);done.textContent='Fatto';done.disabled=false;button.replaceWith(done);done.addEventListener('click',()=>modal.close());}catch(error){if(pdfWindow)pdfWindow.close();status.textContent=error.message;button.disabled=false;}
+      });
+    }
+  }
 
   const resizePad = canvas => {
     const ratio = Math.max(window.devicePixelRatio || 1, 1);
@@ -34,7 +92,6 @@
     }
   };
   qa('.signature-pad').forEach(canvas => {
-    if (intakeLocked) return;
     resizePad(canvas);
     let drawing = false;
     const point = ev => {
@@ -115,7 +172,7 @@
       if (status) status.textContent = 'Permesso fotocamera non concesso o dispositivo non disponibile. Usa Scegli foto.';
     }
   };
-  if (video && !q('#tablet-intake-photos')?.hidden && !intakeLocked) startCamera();
+  if (video && !q('#tablet-intake-photos')?.hidden) startCamera();
 
   const intakeTabs = qa('[data-intake-tab]');
   const intakePanels = qa('.tablet-intake-panel');
@@ -132,7 +189,7 @@
       stream?.getTracks().forEach(track => track.stop());
       stream = undefined;
       if (video) video.srcObject = null;
-    } else if (video && !stream && !intakeLocked) startCamera();
+    } else if (video && !stream) startCamera();
     q('.tablet-intake-tabs')?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
   };
   intakeTabs.forEach(tab => {
@@ -149,8 +206,16 @@
   });
   qa('[data-intake-next]').forEach(button => button.addEventListener('click', () => showIntakePanel(button.dataset.intakeNext)));
 
+  const normalizePhoto = async blob => {
+    if (['image/jpeg','image/png'].includes(blob.type)) return blob;
+    let source, url;
+    try { source = await createImageBitmap(blob); }
+    catch { url = URL.createObjectURL(blob); source = await new Promise((resolve,reject)=>{const image=new Image();image.onload=()=>resolve(image);image.onerror=()=>reject(new Error('Il browser non riesce a leggere questa foto. Scegli un’immagine JPEG o PNG.'));image.src=url;}); }
+    const canvas=document.createElement('canvas');canvas.width=source.width||source.naturalWidth;canvas.height=source.height||source.naturalHeight;canvas.getContext('2d').drawImage(source,0,0);source.close?.();if(url)URL.revokeObjectURL(url);
+    const converted=await new Promise(resolve=>canvas.toBlob(resolve,'image/jpeg',.9));if(!converted)throw new Error('Conversione della foto non riuscita. Usa un file JPEG o PNG.');return converted;
+  };
   const upload = async blob => {
-    if (intakeLocked) throw new Error('Accettazione bloccata. Usa “Sblocca e modifica” per caricare le foto.');
+    blob = await normalizePhoto(blob);
     const category = q('#photo-category').value;
     const station = q('#photo-station').value;
     const data = new FormData();
@@ -184,7 +249,6 @@
   form?.addEventListener('submit', async ev => {
     ev.preventDefault();
     const statusNode = q('#acceptance-status');
-    if (intakeLocked) { statusNode.textContent = 'Accettazione bloccata. Usa “Sblocca e modifica” per aggiornarla.'; return; }
     const terms = q('[data-signature="terms"]'), privacy = q('[data-signature="privacy"]');
     if (!terms?.dataset.signed || !privacy?.dataset.signed) { statusNode.textContent = 'Raccogli entrambe le firme nelle rispettive aree.'; return; }
     const data = new URLSearchParams();

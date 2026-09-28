@@ -1,8 +1,16 @@
 # Changelog
 
+## 0.15.9 — 28/09/2026
+
+- Aggiunta anteprima fotografica touch con targa, posizione, chiusura e navigazione tra le immagini.
+- Aggiunta eliminazione delle foto con conferma, disponibile quando la fase Accettazione è sbloccata.
+- Aggiunta la selezione delle foto e la creazione di un PDF archiviato nei Documenti dell’ordine, con intestazione officina, anagrafica cliente e veicolo e firme dell’accettazione.
+- Aggiunto l’invio del PDF all’Ufficio per Stampa: il gestionale PC mostra una richiesta con il nome dell’operatore e apre il documento dopo l’accettazione.
+- Le immagini scattate o scelte dal Tablet vengono normalizzate in JPEG quando il formato del dispositivo richiede conversione.
+
 ## 0.15.8 — 28/09/2026
 
-- Corretta la causa del mancato salvataggio delle foto dal Tablet: se l’accettazione è bloccata, la schermata ora indica come riaprirla e il ritorno resta nella postazione Tablet.
+- Corretta la causa del mancato salvataggio delle foto dal Tablet: se l’accettazione è bloccata, la schermata indica come riaprirla e resta nella postazione Tablet.
 - Salvataggio atomico di file, foto e annotazioni; gli errori di fase bloccata sono espliciti e non portano alla scheda PC.
 - Aggiunta la creazione di una nuova accettazione dalla Postazione Tablet. Il salvataggio di firme e consensi completa l’accettazione e sblocca Ispezione e preventivo.
 

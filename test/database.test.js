@@ -30,6 +30,10 @@ test('schema is repeatable and protects core workshop records', async t => {
   const customer = await db.query(`INSERT INTO customers(name) VALUES('Cliente test') RETURNING id`);
   const vehicle = await db.query(`INSERT INTO vehicles(customer_id,plate,make,model) VALUES($1,'AA000AA','GO','Test') RETURNING id`, [customer.rows[0].id]);
   const order = await db.query(`INSERT INTO work_orders(customer_id,vehicle_id) VALUES($1,$2) RETURNING id`, [customer.rows[0].id,vehicle.rows[0].id]);
+  const photoReportDoc=await db.query(`INSERT INTO documents(work_order_id,document_type,file_name,mime_type,file_data,created_by) VALUES($1,'intake_photo_report','GO-test-foto.pdf','application/pdf',decode('25504446','hex'),$2) RETURNING id`,[order.rows[0].id,manager.rows[0].id]);
+  const printRequest=await db.query(`INSERT INTO intake_print_requests(work_order_id,document_id,requested_by) VALUES($1,$2,$3) RETURNING id,status,workshop_id`,[order.rows[0].id,photoReportDoc.rows[0].id,user1.rows[0].id]);
+  assert.equal(printRequest.rows[0].status,'pending','la richiesta di stampa resta in attesa dell’ufficio');
+  assert.equal(Number(printRequest.rows[0].workshop_id),1,'la richiesta è associata all’officina');
   const stations = ['front','front_right','right','rear_right','rear','rear_left','left','front_left'];
   const photoBytes = Buffer.from([137,80,78,71,13,10,26,10,1,2,3]);
   for (const station of stations) {
@@ -64,10 +68,10 @@ test('schema is repeatable and protects core workshop records', async t => {
   assert.equal(paused.rows[0].person_seconds, 900, 'la pausa non viene conteggiata nel tempo lavorato');
   assert.equal(paused.rows[0].elapsed_seconds, 1200, 'l’intervallo conserva la durata di calendario');
 
-  const newFeatures=await db.query(`SELECT (SELECT count(*) FROM information_schema.columns WHERE table_name='work_operations' AND column_name IN ('priority','mechanic_instructions'))::int AS priority_fields,(SELECT count(*) FROM information_schema.columns WHERE table_name='time_entries' AND column_name IN ('auto_stopped','out_of_hours_notified_at'))::int AS timer_fields,(SELECT count(*) FROM information_schema.tables WHERE table_name IN ('calendar_reminders','user_module_permissions','tablet_devices'))::int AS new_tables`);
+  const newFeatures=await db.query(`SELECT (SELECT count(*) FROM information_schema.columns WHERE table_name='work_operations' AND column_name IN ('priority','mechanic_instructions'))::int AS priority_fields,(SELECT count(*) FROM information_schema.columns WHERE table_name='time_entries' AND column_name IN ('auto_stopped','out_of_hours_notified_at'))::int AS timer_fields,(SELECT count(*) FROM information_schema.tables WHERE table_name IN ('calendar_reminders','user_module_permissions','tablet_devices','intake_print_requests'))::int AS new_tables`);
   assert.equal(newFeatures.rows[0].priority_fields,2,'priorità e istruzioni sono persistenti sulle lavorazioni');
   assert.equal(newFeatures.rows[0].timer_fields,2,'gli arresti automatici e avvisi sono persistenti');
-  assert.equal(newFeatures.rows[0].new_tables,3,'promemoria, permessi individuali e tablet sono persistenti');
+  assert.equal(newFeatures.rows[0].new_tables,4,'promemoria, permessi individuali, tablet e coda stampa sono persistenti');
   await db.query(`UPDATE work_order_updates SET request_status='used_unstocked' WHERE id=$1`,[request.rows[0].id]);
   assert.equal((await db.query('SELECT request_status FROM work_order_updates WHERE id=$1',[request.rows[0].id])).rows[0].request_status,'used_unstocked','i ricambi usati fuori magazzino hanno uno stato tracciato');
   const overnight=await db.query(`INSERT INTO time_entries(operation_id,user_id,started_at) VALUES($1,$2,'2020-03-20T12:00:00Z') RETURNING id`,[operation.rows[0].id,manager.rows[0].id]);
