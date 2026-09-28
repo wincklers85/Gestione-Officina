@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.15.3 — 28/09/2026
+
+- Corretti l’avvio dell’applicazione e i collegamenti ai documenti dall’ambiente tablet.
+- Rimossi dalla schermata Tablet gli ultimi collegamenti a gestionale e calendario PC.
+
+
 ## 0.15.2 — 28/09/2026
 
 - Avviare, mettere in pausa, riprendere o terminare un timer dalla postazione tablet riporta alla stessa scheda e aggiorna il contatore senza aprire il gestionale PC.
