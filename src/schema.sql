@@ -23,6 +23,7 @@ CREATE TABLE IF NOT EXISTS workshop_settings (
   repair_terms TEXT NOT NULL DEFAULT '',
   privacy_notice TEXT NOT NULL DEFAULT '',
   document_prefix TEXT NOT NULL DEFAULT 'GO',
+  warranty_days INTEGER NOT NULL DEFAULT 365 CHECK (warranty_days BETWEEN 0 AND 3650),
   opening_time TIME NOT NULL DEFAULT '08:00',
   closing_time TIME NOT NULL DEFAULT '18:00',
   working_days SMALLINT[] NOT NULL DEFAULT ARRAY[1,2,3,4,5]::smallint[],
@@ -31,6 +32,7 @@ CREATE TABLE IF NOT EXISTS workshop_settings (
 ALTER TABLE workshop_settings ADD COLUMN IF NOT EXISTS repair_terms TEXT NOT NULL DEFAULT '';
 ALTER TABLE workshop_settings ADD COLUMN IF NOT EXISTS privacy_notice TEXT NOT NULL DEFAULT '';
 ALTER TABLE workshop_settings ADD COLUMN IF NOT EXISTS document_prefix TEXT NOT NULL DEFAULT 'GO';
+ALTER TABLE workshop_settings ADD COLUMN IF NOT EXISTS warranty_days INTEGER NOT NULL DEFAULT 365;
 ALTER TABLE workshop_settings ADD COLUMN IF NOT EXISTS logo_data BYTEA;
 ALTER TABLE workshop_settings ADD COLUMN IF NOT EXISTS logo_mime TEXT NOT NULL DEFAULT 'image/png';
 ALTER TABLE workshop_settings ADD COLUMN IF NOT EXISTS labs_3d_enabled BOOLEAN NOT NULL DEFAULT FALSE;
@@ -100,9 +102,25 @@ CREATE TABLE IF NOT EXISTS work_orders (
   fuel_level TEXT NOT NULL DEFAULT '',
   target_date DATE,
   notes TEXT NOT NULL DEFAULT '',
+  return_type TEXT NOT NULL DEFAULT 'new' CHECK (return_type IN ('new','warranty')),
+  origin_work_order_id BIGINT REFERENCES work_orders(id),
   created_by BIGINT REFERENCES users(id),
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+ALTER TABLE work_orders ADD COLUMN IF NOT EXISTS return_type TEXT NOT NULL DEFAULT 'new';
+ALTER TABLE work_orders ADD COLUMN IF NOT EXISTS origin_work_order_id BIGINT REFERENCES work_orders(id);
+CREATE TABLE IF NOT EXISTS work_order_workflow_steps (
+  work_order_id BIGINT NOT NULL REFERENCES work_orders(id) ON DELETE CASCADE,
+  step_key TEXT NOT NULL CHECK (step_key IN ('intake','inspection','parts','repair','quality','billing','delivery')),
+  is_unlocked BOOLEAN NOT NULL DEFAULT FALSE,
+  completed_at TIMESTAMPTZ,
+  completed_by BIGINT REFERENCES users(id),
+  unlocked_at TIMESTAMPTZ,
+  unlocked_by BIGINT REFERENCES users(id),
+  reopened_at TIMESTAMPTZ,
+  reopened_by BIGINT REFERENCES users(id),
+  PRIMARY KEY(work_order_id,step_key)
 );
 CREATE TABLE IF NOT EXISTS work_operations (
   id BIGSERIAL PRIMARY KEY,
@@ -530,6 +548,7 @@ CREATE TABLE IF NOT EXISTS warranty_cases (
   created_by BIGINT REFERENCES users(id),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+ALTER TABLE warranty_cases ADD COLUMN IF NOT EXISTS return_work_order_id BIGINT REFERENCES work_orders(id);
 CREATE INDEX IF NOT EXISTS warranty_cases_status_idx ON warranty_cases(status,received_at DESC);
 CREATE INDEX IF NOT EXISTS warranty_cases_work_order_idx ON warranty_cases(work_order_id,received_at DESC);
 CREATE TABLE IF NOT EXISTS warranty_events (
@@ -639,7 +658,7 @@ DO $$
 DECLARE t TEXT;
 BEGIN
   FOREACH t IN ARRAY ARRAY[
-    'users','workshop_settings','workshop_resources','customers','vehicles','bookings','work_orders',
+    'users','workshop_settings','workshop_resources','customers','vehicles','bookings','work_orders','work_order_workflow_steps',
     'work_operations','operation_assignments','work_order_updates','time_entries','time_entry_adjustments','estimates','customer_action_tokens','customer_portal_tokens','estimate_customer_responses','estimate_lines',
     'inventory_items','stock_movements','inventory_reservations','suppliers','purchase_orders',
     'purchase_order_lines','invoices','invoice_lines','payments','quality_checks','road_tests',
@@ -665,7 +684,7 @@ DO $$
 DECLARE t TEXT;
 BEGIN
   FOREACH t IN ARRAY ARRAY[
-    'users','workshop_settings','workshop_resources','customers','vehicles','bookings','work_orders',
+    'users','workshop_settings','workshop_resources','customers','vehicles','bookings','work_orders','work_order_workflow_steps',
     'work_operations','operation_assignments','work_order_updates','time_entries','time_entry_adjustments','estimates','customer_action_tokens','customer_portal_tokens','estimate_customer_responses','estimate_lines',
     'inventory_items','stock_movements','inventory_reservations','suppliers','purchase_orders',
     'purchase_order_lines','invoices','invoice_lines','payments','quality_checks','road_tests',
@@ -677,6 +696,33 @@ BEGIN
     EXECUTE format('CREATE POLICY tenant_isolation ON %I USING (current_setting(''app.platform_admin'',true)=''true'' OR workshop_id=nullif(current_setting(''app.workshop_id'',true),'''')::bigint) WITH CHECK (current_setting(''app.platform_admin'',true)=''true'' OR workshop_id=nullif(current_setting(''app.workshop_id'',true),'''')::bigint)',t);
   END LOOP;
 END $$;
+WITH current_stage AS (
+  SELECT w.id,w.status,
+    CASE
+      WHEN w.status IN ('checked_in','diagnosis','quote_pending') THEN 'inspection'
+      WHEN w.status='waiting_parts' THEN 'parts'
+      WHEN w.status IN ('scheduled','in_progress') THEN 'repair'
+      WHEN w.status IN ('quality_check','testing') THEN 'quality'
+      WHEN w.status='ready' THEN 'billing'
+      WHEN w.status='invoiced' AND EXISTS (SELECT 1 FROM invoices i WHERE i.work_order_id=w.id AND i.status='paid') THEN 'delivery'
+      WHEN w.status='invoiced' THEN 'billing'
+      WHEN w.status IN ('delivered','closed','cancelled') THEN NULL
+      ELSE 'intake'
+    END AS active_step,
+    w.updated_at
+  FROM work_orders w
+), all_steps AS (
+  SELECT unnest(ARRAY['intake','inspection','parts','repair','quality','billing','delivery']::text[]) AS step_key,
+         unnest(ARRAY[1,2,3,4,5,6,7]::int[]) AS step_order
+), step_ordered AS (
+  SELECT cs.*,s.step_key,s.step_order,
+    CASE cs.active_step WHEN 'intake' THEN 1 WHEN 'inspection' THEN 2 WHEN 'parts' THEN 3 WHEN 'repair' THEN 4 WHEN 'quality' THEN 5 WHEN 'billing' THEN 6 WHEN 'delivery' THEN 7 ELSE 8 END AS active_order
+  FROM current_stage cs CROSS JOIN all_steps s
+)
+INSERT INTO work_order_workflow_steps(work_order_id,step_key,is_unlocked,completed_at)
+SELECT id,step_key,step_order=active_order,CASE WHEN step_order<active_order OR active_step IS NULL THEN updated_at END
+FROM step_ordered
+ON CONFLICT(work_order_id,step_key) DO NOTHING;
 ALTER TABLE workshops ENABLE ROW LEVEL SECURITY;
 ALTER TABLE workshops FORCE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS tenant_isolation ON workshops;

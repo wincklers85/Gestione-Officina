@@ -13,7 +13,13 @@ Requisiti: Node.js 20 o successivo e PostgreSQL.
 5. Crea il primo titolare con `npm run admin:create`.
 6. Avvia il servizio con `npm start` e apri `http://localhost:10000`.
 
-Per la verifica locale esegui `npm test`: i test usano PostgreSQL WASM isolato per applicare lo schema, controllare la ripetibilità dello schema, la chiusura dei lavori solo dopo operazioni, timer, checklist e test su strada, la distinzione tra ore-persona e intervallo di calendario, pause e rettifiche timer con motivazione, prenotazioni con risorse, preventivi extra e token cliente con scadenza, riserva e scarico di ricambi in base a quantità approvate, richieste privacy, movimenti magazzino, la conversione Europe/Rome e i cambi DST, la persistenza del logo e dei testi accettati, e i vincoli di consegna.
+Per la verifica locale esegui `npm run check` e `npm test`: i test usano PostgreSQL WASM isolato per applicare lo schema, controllare la ripetibilità dello schema, il percorso a schede accettazione → ispezione e preventivo → ricambi → riparazione → collaudo → fattura e incasso → consegna, il blocco delle schede completate, le riaperture tracciate e il periodo di garanzia configurabile, la chiusura dei lavori solo dopo operazioni, timer, checklist e test su strada, la distinzione tra ore-persona e intervallo di calendario, pause e rettifiche timer con motivazione, prenotazioni con risorse, preventivi extra e token cliente con scadenza, riserva e scarico di ricambi in base a quantità approvate, richieste privacy, movimenti magazzino, la conversione Europe/Rome e i cambi DST, la persistenza del logo e dei testi accettati, e i vincoli di consegna.
+
+## Avanzamento veicolo
+
+La scheda di ogni ordine è divisa in fasi: accettazione, ispezione e preventivo, ricambi, riparazione, collaudo, fattura e incasso, consegna. La fase successiva si apre solo dopo il completamento dei requisiti della scheda corrente; le schede concluse restano consultabili. Per correggere una fase precedente, il titolare, l’amministratore o il responsabile la sbloccano: autore e ora restano nel registro, e le fasi successive tornano da verificare. Dopo l’incasso completo si apre la consegna; confermandola, l’ordine passa a **Lavori Chiusi**.
+
+La durata del periodo di garanzia si imposta in **Impostazioni officina**. Quando un veicolo viene riaccettato entro il termine, GO chiede se registrare un rientro in garanzia collegato all’intervento originale oppure un nuovo lavoro.
 
 ## Aree d’uso: computer, tablet officina e schermo cliente
 

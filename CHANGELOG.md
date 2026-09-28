@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.15.0 — 28/09/2026
+
+- L’avanzamento del veicolo è organizzato in sette schede: accettazione, ispezione e preventivo, ricambi, riparazione, collaudo, fattura e incasso, consegna. La fase successiva si sblocca al completamento dei requisiti correnti.
+- Le fasi completate si consultano in sola lettura. Titolare, amministratore e responsabile possono riaprirle; autore e ora sono conservati nel registro e le fasi successive tornano da completare.
+- Il collaudo superato sblocca il documento; il saldo completo apre la consegna; la consegna aggiorna i chilometri, chiude l’ordine e lo inserisce in **Lavori Chiusi**.
+- Aggiunta alle impostazioni la durata garanzia configurabile (0–3650 giorni). In accettazione, i veicoli rientrati nel periodo mostrano la scelta tra pratica garanzia collegata all’intervento originale e nuovo lavoro.
+- La migrazione crea lo stato delle schede per gli ordini esistenti senza ricreare o sostituire il database.
+
 ## 0.14.2 — 28/09/2026
 
 - L’auto diventa pronta solo quando tutte le lavorazioni sono completate, non ci sono timer attivi, i controlli qualità sono superati e l’ultimo test su strada è passato.

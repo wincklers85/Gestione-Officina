@@ -1,5 +1,28 @@
 document.addEventListener('DOMContentLoaded',()=>{
   const splash=document.querySelector('#go-splash');if(splash)window.setTimeout(()=>{splash.classList.add('is-hidden');window.setTimeout(()=>splash.remove(),350);},350);
+  const warrantyPrompt=document.querySelector('#warranty-return-prompt');
+  if(warrantyPrompt){
+    const vehicle=document.querySelector('[name="vehicle_id"]');
+    const choice=warrantyPrompt.querySelector('[name="return_type"]');
+    const description=warrantyPrompt.querySelector('#warranty-return-description');
+    let map={};try{map=JSON.parse(warrantyPrompt.dataset.warrantyMap||'{}');}catch{}
+    const refreshWarrantyPrompt=()=>{const match=map[vehicle?.value];warrantyPrompt.hidden=!match;if(match&&description)description.textContent=`Intervento originale GO-${match.orderId}, consegnato da ${match.days} giorni o meno. Scegli se aprire una pratica di garanzia oppure registrare un nuovo lavoro.`;if(choice)choice.value='new';};
+    vehicle?.addEventListener('change',refreshWarrantyPrompt);refreshWarrantyPrompt();
+  }
+  const workflow=document.querySelector('.workflow-progress-card');
+  if(workflow){
+    const tabs=[...workflow.querySelectorAll('[data-workflow-tab]')],cards=[...document.querySelectorAll('.workflow-step-card')],actions=[...workflow.querySelectorAll('[data-step-action]')],title=workflow.querySelector('h2');
+    const activate=key=>{
+      const tab=tabs.find(item=>item.dataset.workflowTab===key&&!item.disabled);if(!tab)return;
+      tabs.forEach(item=>item.setAttribute('aria-selected',String(item===tab)));
+      cards.forEach(card=>{const selected=card.dataset.workflowStep===key;card.hidden=!selected;if(selected){const locked=card.dataset.workflowUnlocked!=='true';card.querySelectorAll('form').forEach(form=>{form.hidden=locked;});card.querySelectorAll('a[href*="/estimate/new"]').forEach(link=>{link.hidden=locked;});if(locked&&!card.querySelector('.workflow-readonly-note')){const note=document.createElement('p');note.className='muted workflow-readonly-note';note.textContent='Scheda completata: consultazione in sola lettura. Per modificarla, usa “Sblocca e modifica” qui sopra.';card.prepend(note);}}});
+      actions.forEach(item=>{item.hidden=item.dataset.stepAction!==key;});
+      if(title)title.textContent=tab.querySelector('span')?.textContent||'';
+      try{const url=new URL(window.location.href);url.searchParams.set('tab',key);window.history.replaceState(null,'',url);}catch{}
+    };
+    tabs.forEach(tab=>tab.addEventListener('click',()=>activate(tab.dataset.workflowTab)));
+    activate(workflow.dataset.activeStep||tabs.find(item=>!item.disabled)?.dataset.workflowTab);
+  }
   const flashDialog=document.querySelector('#flash-dialog');
   if(flashDialog&&typeof flashDialog.showModal==='function'){
     flashDialog.querySelector('[data-dismiss-flash]')?.addEventListener('click',()=>flashDialog.close());
