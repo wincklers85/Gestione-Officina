@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.15.7 — 28/09/2026
+
+- Corretto il salvataggio delle foto dal Tablet: il token di sicurezza viene inviato nell’header della richiesta multipart e il server può validarlo prima di leggere il file.
+- In caso di rifiuto o errore di rete, la schermata mostra un messaggio leggibile e conserva la selezione per riprovare.
+
 ## 0.15.6 — 28/09/2026
 
 - Lo splash di avvio non viene mostrato nell’ambiente Tablet, così l’avvio, la pausa e la ripresa del timer restano immediati nella postazione.

@@ -26,8 +26,11 @@ const softwareHouseUrl = 'https://winlabs.onrender.com';
 const releases = [{
   version: appVersion,
   date: '2026-09-28',
-  title: 'Avvio rapido e avanzamento firme su Tablet',
+  title: 'Foto Tablet salvate correttamente',
   changes: [
+    'Corretto il controllo di sicurezza dell’upload: le foto selezionate o scattate dal Tablet ora arrivano al salvataggio nel database.',
+    'Se il server rifiuta una foto, la schermata mostra il motivo e permette di riprovare.',
+    'Lo splash non viene mostrato nell’ambiente Tablet; dopo il salvataggio delle firme si apre la fase successiva.',
     'Il Tablet non mostra più lo splash a ogni caricamento: il timer si avvia senza una schermata sovrapposta.',
     'Dopo il salvataggio delle firme, la postazione passa automaticamente alla fase successiva e mostra un errore chiaro se il salvataggio non riesce.',
     'La presa in carico è divisa nelle schede Veicolo e foto e Consensi e firme, per rendere più semplice l’uso su tablet e smartphone.',

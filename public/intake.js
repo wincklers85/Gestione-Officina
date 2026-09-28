@@ -147,14 +147,21 @@
     const category = q('#photo-category').value;
     const station = q('#photo-station').value;
     const data = new FormData();
-    data.append('_csrf', document.querySelector('meta[name="csrf-token"]')?.content || form?.dataset.csrf || '');
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || form?.dataset.csrf || '';
+    data.append('_csrf', csrfToken);
     data.append('category', category); data.append('station', station);
     data.append('damage_marks', JSON.stringify(category === 'exterior' ? marks : []));
     data.append('photo', blob, `go-${station}.jpg`);
     if (status) status.textContent = 'Salvataggio foto…';
-    const response = await fetch(`/tablet/work-orders/${form.dataset.workOrder}/photos`, { method: 'POST', body: data });
-    const result = await response.json();
-    if (!response.ok) throw new Error(result.error || 'Non è stato possibile salvare la foto.');
+    const response = await fetch(`/tablet/work-orders/${form.dataset.workOrder}/photos`, {
+      method: 'POST',
+      headers: { 'X-CSRF-Token': csrfToken },
+      body: data
+    });
+    const contentType = response.headers.get('content-type') || '';
+    const result = contentType.includes('application/json') ? await response.json() : null;
+    if (!response.ok) throw new Error(result?.error || `Salvataggio foto rifiutato dal server (${response.status}).`);
+    if (!result) throw new Error('Il server non ha confermato il salvataggio della foto.');
     if (status) status.textContent = `Foto ${result.label} salvata.`;
     marks = []; q('#damage-layer')?.replaceChildren();
     window.location.reload();
