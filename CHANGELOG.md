@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.15.2 — 28/09/2026
+
+- Avviare, mettere in pausa, riprendere o terminare un timer dalla postazione tablet riporta alla stessa scheda e aggiorna il contatore senza aprire il gestionale PC.
+- Aggiunte schede touch persistenti per Lavorazioni, Ordini e Info, tutte all’interno dell’ambiente tablet.
+- Rimossi dai dettagli tablet i collegamenti che portavano alle schede del gestionale PC.
+
+
 ## 0.15.1 — 28/09/2026
 
 - Corrette le rotte di salvataggio, completamento e riapertura delle schede, che causavano la risposta “Cannot POST”.

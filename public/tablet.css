@@ -97,3 +97,16 @@
 
 /* Touch interface del meccanico: arancione GO, priorità e azioni leggibili. */
 .shell-mechanic{background:#fff8f3}.shell-mechanic .mechanic-appbar{border-bottom:3px solid #ef6b22}.shell-mechanic .mechanic-job-card{border-color:#f0b38e;background:#fff;box-shadow:0 5px 16px #bf4e1010}.shell-mechanic .mechanic-job-card .tablet-job-foot strong{color:#b7470b}.shell-mechanic .mechanic-operation{border-color:#f0b38e}.shell-mechanic .mechanic-operation-controls .button.primary,.shell-mechanic .tablet-update-forms .button.primary{background:#e85c13;border-color:#d94f08;color:#fff}.shell-mechanic .mechanic-operation-controls .button{border-radius:13px}.shell-mechanic .mechanic-timer{border-color:#f4c5a7;background:#fff3eb}.shell-mechanic .mechanic-clock.running{color:#b7470b}
+
+/* Tablet top level navigation: real, persistent sections kept inside the tablet workspace. */
+.tablet-app-tabs{position:sticky;top:0;z-index:12;display:flex;gap:8px;align-items:stretch;margin:-20px -24px 18px;padding:10px 20px;background:#fff;border-bottom:1px solid var(--line);box-shadow:0 3px 12px #1826380a;overflow-x:auto;scrollbar-width:thin}
+.tablet-app-tab{display:flex;align-items:center;justify-content:center;gap:10px;min-width:150px;min-height:58px;padding:10px 18px;border:1px solid transparent;border-radius:14px;color:var(--muted);font-weight:700;text-decoration:none;white-space:nowrap}
+.tablet-app-tab img{width:26px;height:26px;object-fit:contain}
+.tablet-app-tab.active{color:#a94a12;background:#fff0e7;border-color:#f8d3bf}
+.tablet-app-tab:focus-visible{outline:3px solid #f47a2d;outline-offset:2px}
+.shell-tablet .sidebar{display:none}
+.shell-tablet .main{max-width:none;padding:0 24px 32px}
+.shell-tablet .topbar{padding-top:14px}
+.shell-mechanic .tablet-app-tabs{margin:0 0 12px;top:0}
+@media(max-width:900px){.tablet-app-tabs{margin:-14px -14px 14px;padding:8px 12px;gap:6px}.tablet-app-tab{flex:1;min-width:120px;min-height:58px;padding:9px 12px}.shell-tablet .main{padding:0 14px calc(24px + env(safe-area-inset-bottom))}.shell-mechanic .tablet-app-tabs{margin:0 -14px 12px}}
+@media(max-width:520px){.tablet-app-tab{min-width:108px;gap:7px;font-size:14px}.tablet-app-tab img{width:23px;height:23px}.shell-tablet .topbar{align-items:center}.shell-tablet .topbar>div:first-child{max-width:none}}
