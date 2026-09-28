@@ -19,6 +19,15 @@
     ctx.lineJoin = 'round';
     ctx.strokeStyle = '#202a39';
   };
+  const resizeSignaturePad = canvas => {
+    const before = canvas.dataset.signed ? canvas.toDataURL() : '';
+    resizePad(canvas);
+    if (before) {
+      const image = new Image();
+      image.onload = () => canvas.getContext('2d').drawImage(image, 0, 0, canvas.clientWidth, canvas.clientHeight);
+      image.src = before;
+    }
+  };
   qa('.signature-pad').forEach(canvas => {
     resizePad(canvas);
     let drawing = false;
@@ -49,8 +58,7 @@
     delete canvas.dataset.signed;
   }));
   window.addEventListener('resize', () => qa('.signature-pad').forEach(canvas => {
-    const before = canvas.toDataURL(); resizePad(canvas);
-    if (canvas.dataset.signed) { const img = new Image(); img.onload = () => canvas.getContext('2d').drawImage(img, 0, 0, canvas.clientWidth, canvas.clientHeight); img.src = before; }
+    if (canvas.getClientRects().length) resizeSignaturePad(canvas);
   }));
 
   const setStation = station => {
@@ -101,7 +109,39 @@
       if (status) status.textContent = 'Permesso fotocamera non concesso o dispositivo non disponibile. Usa Scegli foto.';
     }
   };
-  if (video) startCamera();
+  if (video && !q('#tablet-intake-photos')?.hidden) startCamera();
+
+  const intakeTabs = qa('[data-intake-tab]');
+  const intakePanels = qa('.tablet-intake-panel');
+  const showIntakePanel = key => {
+    intakeTabs.forEach(tab => {
+      const selected = tab.dataset.intakeTab === key;
+      tab.setAttribute('aria-selected', String(selected));
+      tab.classList.toggle('is-active', selected);
+      tab.tabIndex = selected ? 0 : -1;
+    });
+    intakePanels.forEach(panel => { panel.hidden = panel.id !== `tablet-intake-${key}`; });
+    if (key === 'signature') {
+      qa('.signature-pad').forEach(resizeSignaturePad);
+      stream?.getTracks().forEach(track => track.stop());
+      stream = undefined;
+      if (video) video.srcObject = null;
+    } else if (video && !stream) startCamera();
+    q('.tablet-intake-tabs')?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  };
+  intakeTabs.forEach(tab => {
+    tab.tabIndex = tab.getAttribute('aria-selected') === 'true' ? 0 : -1;
+    tab.addEventListener('click', () => showIntakePanel(tab.dataset.intakeTab));
+    tab.addEventListener('keydown', event => {
+      if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+      event.preventDefault();
+      const currentIndex = intakeTabs.indexOf(tab);
+      const next = event.key === 'Home' ? 0 : event.key === 'End' ? intakeTabs.length - 1 : (currentIndex + (event.key === 'ArrowRight' ? 1 : intakeTabs.length - 1)) % intakeTabs.length;
+      intakeTabs[next]?.focus();
+      intakeTabs[next]?.click();
+    });
+  });
+  qa('[data-intake-next]').forEach(button => button.addEventListener('click', () => showIntakePanel(button.dataset.intakeNext)));
 
   const upload = async blob => {
     const category = q('#photo-category').value;

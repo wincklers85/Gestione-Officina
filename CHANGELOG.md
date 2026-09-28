@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.15.5 — 28/09/2026
+
+- Separata l’accettazione Tablet in due schede touch: **Veicolo e foto** e **Consensi e firme**, così la schermata non presenta più tutti i contenuti in un unico scorrimento.
+- Dopo il salvataggio firme si riapre la scheda di conferma; i tratti inseriti restano conservati quando si cambia scheda.
+
+
 ## 0.15.4 — 28/09/2026
 
 - Ridisegnata la postazione tablet con schede operative più leggibili, gerarchia visiva più chiara, indicatori touch e timer in evidenza.
