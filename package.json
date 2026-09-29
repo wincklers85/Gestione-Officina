@@ -1,6 +1,6 @@
 {
   "name": "go-gestione-officina",
-  "version": "0.15.9",
+  "version": "0.15.10",
   "private": true,
   "description": "Gestionale web per officina meccanica, predisposto per Render e PostgreSQL.",
   "engines": {
@@ -11,22 +11,4 @@
     "migrate": "node src/migrate.js",
     "admin:create": "node scripts/create-admin.js",
     "superuser:create": "node scripts/create-superuser.js",
-    "check": "node --check src/server.js && node --check public/intake.js && node --check public/app.js && node --check src/migrate.js && node --check src/timezone.js && node --check src/work-hours.js && node --check src/repair-readiness.js && node --check src/work-order-workflow.js && node --check src/portal-documents.js && node --check src/inventory-billing.js && node --check src/photo-sequence.js && node --check src/warranties.js && node --check src/supplier-returns.js && node --check scripts/create-admin.js && node --check scripts/create-superuser.js && node --check test/database.test.js && node --check test/photo-sequence.test.js && node --check test/timezone.test.js && node --check test/work-hours.test.js && node --check test/repair-readiness.test.js && node --check test/work-order-workflow.test.js && node --check test/warranties.test.js && node --check test/supplier-returns.test.js",
-    "test": "node --test"
-  },
-  "dependencies": {
-    "bcryptjs": "^3.0.2",
-    "connect-pg-simple": "^10.0.0",
-    "dotenv": "^18.0.4",
-    "express": "^5.1.0",
-    "express-session": "^1.18.2",
-    "helmet": "^8.1.0",
-    "multer": "^2.4.0",
-    "pdfkit": "^0.17.1",
-    "pg": "^8.16.3",
-    "qrcode": "^1.5.4"
-  },
-  "devDependencies": {
-    "@electric-sql/pglite": "^0.5.8"
-  }
-}
+    "check": "node --check src/server.js && node --check public/intake.js && node --check public/app.js && node --check public/work-order-gallery.js && node --check src/migrate.js && node --check src/timezone.js && node --check src/work-hours.js && node --check src/repair-readiness.js && node --check src/work-order-workflow.js && node --check src/portal-documents.js && node --check src/inventory-billing.js && node --check src/photo-sequence.js && node --check src/warranties.js && node --check src/supplier-returns.js && node --check scripts/create-admin.js && node --check scripts/create-superuser.js && node --check test/database.test.js && node --check test/photo-sequence.test.js && node --check test/timezone.test.js && node --check test/work-hours.test.js && node --check test/repair-readiness.test.js && node --check test/work-order-workflow.test.js && node --check test/warranties.test
