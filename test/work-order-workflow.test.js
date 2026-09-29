@@ -67,3 +67,19 @@ test('il pagamento avanza la consegna solo per ordini in fatturazione', () => {
   assert.equal(shouldAdvanceWorkflowAfterPayment('closed'), false);
   assert.equal(shouldAdvanceWorkflowAfterPayment('ready'), false);
 });
+
+test('collaudo e saldo aprono la fattura e poi la consegna; la consegna non si chiude come fase standard', async t => {
+  const db = await setup();
+  t.after(() => db.close());
+  await initializeWorkflow(db, 21, 4);
+  assert.equal(await advanceWorkflow(db, 21, 'inspection', 4), 'parts');
+  assert.equal(await advanceWorkflow(db, 21, 'parts', 4), 'repair');
+  assert.equal(await advanceWorkflow(db, 21, 'repair', 4), 'quality');
+  assert.equal(await advanceWorkflow(db, 21, 'quality', 4), 'billing');
+  assert.equal(await advanceWorkflow(db, 21, 'billing', 4), 'delivery');
+  const rows = (await db.query('SELECT * FROM work_order_workflow_steps WHERE work_order_id=21')).rows;
+  assert.equal(stepState(steps.find(step => step.key === 'quality'), rows).complete, true);
+  assert.equal(stepState(steps.find(step => step.key === 'billing'), rows).complete, true);
+  assert.equal(stepState(steps.find(step => step.key === 'delivery'), rows).unlocked, true);
+  await assert.rejects(advanceWorkflow(db, 21, 'delivery', 4), /comando standard/);
+});
