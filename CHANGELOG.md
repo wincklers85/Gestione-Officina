@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.15.13 — 29/09/2026
+
+- Lo splash di avvio è stato rimosso dal Gestionale e dal Tablet. I salvataggi della scheda collaudo restano nella stessa pagina e le selezioni si ritrovano quando si riprende il lavoro.
+
+## 0.15.12 — 29/09/2026
+
 ## 0.15.12 — 29/09/2026
 
 - Aggiunta la chiusura anticipata in ogni fase attiva: registra la riconsegna, archivia come rifiutati i preventivi pendenti, ferma i timer e libera i soli ricambi riservati. Puoi chiudere senza costo o creare un documento gestionale con addebito.
