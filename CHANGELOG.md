@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.15.15 — 30/09/2026
+
+- Corretto il passaggio di stato: dopo i requisiti dedicati, Collaudo e Fattura si completano e sbloccano la fase successiva fino alla Consegna.
+- Aggiunto un test PostgreSQL del percorso Ispezione → Ricambi → Riparazione → Collaudo → Fattura → Consegna.
+
 ## 0.15.14 — 29/09/2026
 
 - Corretto il pagamento dei documenti con addebito creati dalla chiusura anticipata: la registrazione dell’incasso non riapre le fasi del lavoro già chiuso.
