@@ -188,4 +188,58 @@ document.addEventListener('DOMContentLoaded',()=>{
       root.append(clone);
     });
   }
+
+  const qualityCsrf=document.querySelector('meta[name="csrf-token"]')?.content||'';
+  const updateReadyButtons=()=>{
+    document.querySelectorAll('form[data-quality-ready]').forEach(form=>{
+      const rows=[...document.querySelectorAll(`form[data-quality-check][data-work-order-id="${form.dataset.workOrderId}"]`)];
+      const allPassed=rows.length>=6&&rows.every(row=>row.querySelector('[name="passed"]')?.value==='true');
+      const ready=allPassed&&form.dataset.operationsComplete==='true'&&form.dataset.noActiveTimers==='true'&&form.dataset.roadTestPassed==='true';
+      const button=form.querySelector('button[type="submit"]');if(button)button.disabled=!ready;
+      const hint=form.querySelector('.quality-ready-hint');
+      if(hint)hint.textContent=ready?'Tutti i controlli sono superati. Salva il collaudo per segnare l’auto pronta.':!allPassed?'Seleziona e salva l’esito di tutti i controlli; per segnare l’auto pronta devono essere superati.':'Completa lavorazioni e test su strada, poi potrai salvare il collaudo.';
+    });
+  };
+  const refreshQualityRow=(row,check)=>{
+    const state=row.querySelector('[data-quality-state]');if(state){state.textContent='';const badge=document.createElement('span');badge.className='badge '+(check.passed===true?'good':'warning');badge.textContent=check.passed===true?'Superato':check.passed===false?'Non superato':'Da controllare';state.append(badge);}
+    const note=row.querySelector('[data-quality-note]');if(note)note.textContent=check.note||'—';
+  };
+  const renderQualityRow=(check,workOrderId)=>{
+    const tr=document.createElement('tr');tr.dataset.qualityRow=check.id;
+    const label=document.createElement('td');label.textContent=check.label;
+    const state=document.createElement('td');state.dataset.qualityState='';
+    const noteCell=document.createElement('td');noteCell.dataset.qualityNote='';
+    const actionCell=document.createElement('td');
+    const form=document.createElement('form');form.className='quality-check-form';form.method='post';form.action=`/quality-checks/${check.id}`;form.dataset.qualityCheck='';form.dataset.workOrderId=workOrderId;
+    const token=document.createElement('input');token.type='hidden';token.name='_csrf';token.value=qualityCsrf;form.append(token);
+    const orderInput=document.createElement('input');orderInput.type='hidden';orderInput.name='work_order_id';orderInput.value=workOrderId;form.append(orderInput);
+    const select=document.createElement('select');select.name='passed';select.setAttribute('aria-label','Esito');
+    [['','Seleziona esito'],['true','Superato'],['false','Non superato']].forEach(([value,text])=>{const option=document.createElement('option');option.value=value;option.textContent=text;option.selected=(check.passed===true&&value==='true')||(check.passed===false&&value==='false')||(check.passed===null&&value==='');select.append(option);});
+    const input=document.createElement('input');input.name='note';input.placeholder='Nota / anomalia';input.value=check.note||'';
+    const saved=document.createElement('span');saved.className='quality-save-status';saved.setAttribute('role','status');saved.textContent=check.passed===null?'Da compilare':'Salvato';
+    const button=document.createElement('button');button.className='button small';button.type='submit';button.textContent='Salva';
+    form.append(select,input,saved,button);actionCell.append(form);tr.append(label,state,noteCell,actionCell);refreshQualityRow(tr,check);return tr;
+  };
+  const saveQualityForm=async form=>{
+    if(form.dataset.saving==='true'){form.dataset.pending='true';return;}
+    const select=form.querySelector('[name="passed"]');if(!select?.value)return;
+    form.dataset.saving='true';const status=form.querySelector('.quality-save-status');if(status)status.textContent='Salvataggio…';
+    const button=form.querySelector('button[type="submit"]');if(button)button.disabled=true;
+    try{
+      const response=await fetch(form.action,{method:'POST',headers:{Accept:'application/json','X-CSRF-Token':qualityCsrf,'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams(new FormData(form))});
+      const result=await response.json();if(!response.ok)throw new Error(result.error||'Salvataggio non riuscito.');
+      const row=form.closest('tr');if(row)refreshQualityRow(row,result.check);
+      if(status)status.textContent='Salvato';
+    }catch(error){if(status)status.textContent=error.message;}
+    finally{form.dataset.saving='false';if(button)button.disabled=false;updateReadyButtons();if(form.dataset.pending==='true'){form.dataset.pending='false';saveQualityForm(form);}}
+  };
+  document.addEventListener('change',event=>{const form=event.target.closest?.('form[data-quality-check]');if(form)saveQualityForm(form);});
+  document.addEventListener('focusout',event=>{const form=event.target.closest?.('form[data-quality-check]');if(form&&event.target.matches('[name="note"]'))saveQualityForm(form);});
+  document.addEventListener('submit',event=>{
+    const form=event.target.closest?.('form[data-quality-check]');if(form){event.preventDefault();saveQualityForm(form);return;}
+    const setup=event.target.closest?.('form[data-quality-setup]');if(!setup)return;
+    event.preventDefault();const status=setup.querySelector('.quality-setup-status');const button=setup.querySelector('button[type="submit"],button:not([type])');if(button)button.disabled=true;if(status)status.textContent='Apertura scheda…';
+    fetch(setup.action,{method:'POST',headers:{Accept:'application/json','X-CSRF-Token':qualityCsrf,'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams(new FormData(setup))}).then(async response=>{const result=await response.json();if(!response.ok)throw new Error(result.error||'Impossibile aprire la scheda.');const workOrderId=setup.action.split('/').filter(Boolean)[1];const body=document.querySelector(`tbody[data-quality-checklist-body="${workOrderId}"]`);if(!body)throw new Error('Scheda collaudo non trovata nella pagina.');body.replaceChildren(...result.checks.map(check=>renderQualityRow(check,workOrderId)));if(button){button.textContent='Scheda collaudo pronta';button.disabled=true;}if(status)status.textContent='Gli esiti si salvano man mano che li selezioni.';updateReadyButtons();}).catch(error=>{if(status)status.textContent=error.message;if(button)button.disabled=false;});
+  });
+  updateReadyButtons();
 });

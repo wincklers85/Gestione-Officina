@@ -202,3 +202,32 @@
  .tablet-work-card .tablet-operation-controls{grid-template-columns:1fr}
  .tablet-work-card .tablet-operation-controls form{grid-column:auto}
 }
+
+/* Chiusura anticipata e scheda collaudo. */
+.early-close-control{margin:14px 0 0;padding:10px 12px;border:1px solid #f3c1a4;border-radius:13px;background:#fff8f3}
+.early-close-control>summary{display:inline-flex;cursor:pointer;list-style:none}
+.early-close-control>summary::-webkit-details-marker{display:none}
+.early-close-content{margin-top:12px;padding:14px;border:1px solid #f0d3c2;border-radius:11px;background:#fff}
+.early-close-content form{display:grid;gap:12px}
+.early-close-content .form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.early-close-content input,.early-close-content select,.early-close-content textarea{min-height:46px}
+.early-close-content textarea{min-height:80px}
+.quality-check-form{display:grid;grid-template-columns:minmax(130px,1fr) minmax(130px,1fr) auto auto;align-items:center;gap:7px}
+.quality-check-form input,.quality-check-form select{min-width:0;min-height:40px}
+.quality-save-status{grid-column:1/-1;color:#526173;font-size:12px}
+.quality-setup-status{margin-left:8px;color:#526173;font-size:13px}
+.quality-ready-form{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:14px}
+.quality-ready-form button:disabled{opacity:.55;cursor:not-allowed}
+.tablet-quality-sheet{margin:16px 0;padding:0;overflow:hidden}
+.tablet-quality-sheet>details>summary{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:18px 20px;background:#fff8f3;color:#263548;font-size:19px;font-weight:800;cursor:pointer}
+.tablet-quality-sheet>details>summary small{color:#667085;font-size:13px;font-weight:650}
+.tablet-quality-sheet>details>p,.tablet-quality-sheet>details>form,.tablet-quality-sheet .table-wrap,.tablet-quality-sheet .quality-final-action{margin:14px 18px}
+.tablet-quality-sheet table{min-width:720px}
+.tablet-quality-sheet .quality-check-form{grid-template-columns:minmax(150px,1fr) minmax(150px,1fr) auto auto}
+@media(max-width:700px){
+ .early-close-content .form-grid{grid-template-columns:1fr}
+ .quality-check-form{grid-template-columns:1fr}
+ .quality-save-status{grid-column:auto}
+ .tablet-quality-sheet>details>summary{padding:15px;font-size:17px}
+ .tablet-quality-sheet>details>p,.tablet-quality-sheet>details>form,.tablet-quality-sheet .table-wrap,.tablet-quality-sheet .quality-final-action{margin:12px}
+}
