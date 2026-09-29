@@ -1,7 +1,7 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { PGlite } = require('@electric-sql/pglite');
-const { steps, stepState, warrantyEligible, initializeWorkflow, advanceWorkflow } = require('../src/work-order-workflow');
+const { steps, stepState, warrantyEligible, initializeWorkflow, advanceWorkflow, shouldAdvanceWorkflowAfterPayment } = require('../src/work-order-workflow');
 
 async function setup() {
   const db = new PGlite();
@@ -60,4 +60,10 @@ test('rientro in garanzia rispetta giorni impostati e data di consegna', () => {
   assert.equal(warrantyEligible('2026-01-01T10:00:00Z', '2027-01-01T10:00:01Z', 365), false);
   assert.equal(warrantyEligible('2026-01-01T10:00:00Z', '2025-12-31T10:00:00Z', 365), false);
   assert.equal(warrantyEligible('2026-01-01T10:00:00Z', '2026-01-02T10:00:00Z', 0), false);
+});
+
+test('il pagamento avanza la consegna solo per ordini in fatturazione', () => {
+  assert.equal(shouldAdvanceWorkflowAfterPayment('invoiced'), true);
+  assert.equal(shouldAdvanceWorkflowAfterPayment('closed'), false);
+  assert.equal(shouldAdvanceWorkflowAfterPayment('ready'), false);
 });
