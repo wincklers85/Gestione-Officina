@@ -1,6 +1,6 @@
 {
   "name": "go-gestione-officina",
-  "version": "0.15.12",
+  "version": "0.15.13",
   "private": true,
   "description": "Gestionale web per officina meccanica, predisposto per Render e PostgreSQL.",
   "engines": {
