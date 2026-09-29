@@ -27,10 +27,11 @@ const softwareHouseUrl = 'https://winlabs.onrender.com';
 const releases = [{
   version: appVersion,
   date: '2026-09-29',
-  title: 'Chiusura anticipata e scheda collaudo',
+  title: 'Collaudo senza ricaricare la pagina',
   changes: [
     'Aggiunta la chiusura del lavoro da ogni fase attiva, con riconsegna gratuita o documento gestionale con addebito; i preventivi pendenti vengono archiviati come rifiutati.',
-    'La scheda collaudo è disponibile su Tablet e Gestionale, salva ogni esito senza ricaricare la pagina e conserva le scelte tra sessioni.'
+    'La scheda collaudo è disponibile su Tablet e Gestionale, salva ogni esito senza ricaricare la pagina e conserva le scelte tra sessioni.',
+    'Rimosso lo splash di avvio durante i salvataggi e i passaggi tra le pagine.'
   ]
 }, {
   version: '0.13.0',
