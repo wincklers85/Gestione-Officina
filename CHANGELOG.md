@@ -6,8 +6,6 @@
 
 ## 0.15.12 — 29/09/2026
 
-## 0.15.12 — 29/09/2026
-
 - Aggiunta la chiusura anticipata in ogni fase attiva: registra la riconsegna, archivia come rifiutati i preventivi pendenti, ferma i timer e libera i soli ricambi riservati. Puoi chiudere senza costo o creare un documento gestionale con addebito.
 - La scheda collaudo è disponibile su Tablet e Gestionale. Gli esiti vengono salvati senza ricaricare la pagina e restano memorizzati; il collaudo si può completare quando tutti i controlli sono superati e sono soddisfatti i requisiti di lavorazione e test.
 
