@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.15.11 — 29/09/2026
+
+- Aggiunto “Nuova accettazione” nella postazione tablet, con collegamento diretto alla creazione di un ordine.
+- Termini del servizio e informativa privacy affiancati nella stessa schermata cliente; testo, firme e spaziature sono stati compattati per mostrare entrambi i documenti insieme.
+
 ## 0.15.10 — 29/09/2026
 
 - Dall’accettazione Tablet si possono aggiornare i dati del cliente solo dopo aver sbloccato la fase; ogni modifica viene registrata nell’audit. Ora l’indirizzo email si può inserire prima di scegliere gli aggiornamenti via email.

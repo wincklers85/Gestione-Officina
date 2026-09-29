@@ -69,3 +69,17 @@
 .photo-confirm-dialog{width:min(430px,calc(100vw - 28px));padding:22px;background:#fff}.photo-confirm-dialog p{color:#667085;line-height:1.5}.button.danger{background:#b42318;border-color:#b42318;color:#fff}
 .office-print-dialog{width:min(500px,calc(100vw - 28px));padding:24px;background:#fff}.office-print-dialog>p:not(.office-print-status){line-height:1.55;color:#475467}
 @media(max-width:700px){.intake-photo-preview img{height:124px}.photo-viewer-dialog{inset:0;width:100vw;height:100dvh;border:0;border-radius:0;padding:calc(10px + env(safe-area-inset-top)) 10px calc(10px + env(safe-area-inset-bottom));grid-template-columns:44px minmax(0,1fr) 44px;gap:6px}.photo-viewer-arrow{width:42px;height:58px;font-size:38px}.photo-viewer-close{width:42px;height:42px;flex-basis:42px}.photo-viewer-plate{font-size:18px}.photo-viewer-dialog>footer{padding-inline:5px}.photo-viewer-dialog .button{min-width:110px}.photo-print-dialog{padding:17px}.photo-print-list{grid-template-columns:1fr 1fr}.photo-confirm-dialog>div,.office-print-actions{display:grid;grid-template-columns:1fr 1fr}.photo-confirm-dialog .button,.office-print-dialog .button{width:100%}}
+
+/* Documenti cliente: termini e informativa affiancati e leggibili nella stessa pagina. */
+.client-documents-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;align-items:stretch;margin:8px 0}
+.client-documents-grid .client-document{min-width:0;margin:0;padding:10px 12px;border-radius:10px}
+.client-documents-grid .client-document h2{margin:0 0 5px;font-size:16px;line-height:1.2}
+.customer-screen .client-scroll{max-height:none;overflow:visible;padding:7px 9px;margin:6px 0;font-size:11px;line-height:1.3}
+.client-documents-grid .client-document label{gap:7px;margin:7px 0;font-size:12px;line-height:1.3}
+.client-documents-grid .client-document label input[type=checkbox]{width:19px;height:19px;min-width:19px;min-height:19px}
+.client-documents-grid .client-document .signature-pad{height:86px}
+.client-documents-grid .client-document .button{min-height:34px;padding:6px 10px;font-size:12px}
+@media(max-width:680px){
+ .client-documents-grid{grid-template-columns:1fr}
+ .customer-screen .client-scroll{max-height:28vh;overflow:auto}
+}
