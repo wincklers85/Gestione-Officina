@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.15.14 — 29/09/2026
+
+- Corretto il pagamento dei documenti con addebito creati dalla chiusura anticipata: la registrazione dell’incasso non riapre le fasi del lavoro già chiuso.
+- Il documento di una riconsegna anticipata non propone una seconda consegna del veicolo già restituito.
+
 ## 0.15.13 — 29/09/2026
 
 - Lo splash di avvio è stato rimosso dal Gestionale e dal Tablet. I salvataggi della scheda collaudo restano nella stessa pagina e le selezioni si ritrovano quando si riprende il lavoro.
