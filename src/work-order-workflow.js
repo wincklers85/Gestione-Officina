@@ -49,7 +49,7 @@ function shouldAdvanceWorkflowAfterPayment(workOrderStatus) {
 
 async function advanceWorkflow(client, workOrderId, stepKey, userId) {
   const index = steps.findIndex(step => step.key === stepKey);
-  if (index < 0 || index >= steps.length - 3) throw new Error('Questa fase non si completa con il comando standard.');
+  if (index < 0 || stepKey === 'delivery') throw new Error('Questa fase non si completa con il comando standard.');
   const current = await client.query(
     'UPDATE work_order_workflow_steps SET is_unlocked=false,completed_at=now(),completed_by=$3 WHERE work_order_id=$1 AND step_key=$2 AND is_unlocked=true AND completed_at IS NULL RETURNING step_key',
     [workOrderId, stepKey, userId]
