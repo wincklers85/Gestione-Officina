@@ -43,6 +43,10 @@ async function initializeWorkflow(client, workOrderId, userId, { intakePending =
   }
 }
 
+function shouldAdvanceWorkflowAfterPayment(workOrderStatus) {
+  return workOrderStatus === 'invoiced';
+}
+
 async function advanceWorkflow(client, workOrderId, stepKey, userId) {
   const index = steps.findIndex(step => step.key === stepKey);
   if (index < 0 || index >= steps.length - 3) throw new Error('Questa fase non si completa con il comando standard.');
@@ -65,4 +69,4 @@ async function advanceWorkflow(client, workOrderId, stepKey, userId) {
   return next.key;
 }
 
-module.exports = { steps, stepState, warrantyEligible, initializeWorkflow, advanceWorkflow };
+module.exports = { steps, stepState, warrantyEligible, initializeWorkflow, advanceWorkflow, shouldAdvanceWorkflowAfterPayment };
