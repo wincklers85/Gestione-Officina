@@ -1,3 +1,5 @@
+const { advanceWorkflow, shouldAdvanceWorkflowAfterPayment } = require('./work-order-workflow');
+
 async function reserveEstimateParts(client, estimateId, workOrderId, userId) {
   const estimate = await client.query(`SELECT id FROM estimates WHERE id=$1 AND work_order_id=$2 AND status='approved'`, [estimateId,workOrderId]);
   if (!estimate.rowCount) throw new Error('Approva il preventivo prima di riservare i ricambi.');
@@ -75,4 +77,43 @@ async function consumeInvoiceParts(client, invoiceId, workOrderId, userId) {
   return lines.rows.length;
 }
 
-module.exports = { reserveEstimateParts, consumeInvoiceParts };
+async function recordInvoicePayment(client, { invoiceId, amount: amountValue, method, reference='', userId }) {
+  const invoice = await client.query(
+    `SELECT i.id,i.work_order_id,w.status AS work_order_status
+     FROM invoices i JOIN work_orders w ON w.id=i.work_order_id
+     WHERE i.id=$1 AND i.status IN ('open','partial')
+     FOR UPDATE OF i,w`,
+    [invoiceId]
+  );
+  if (!invoice.rowCount) throw new Error('Il documento non è aperto ai pagamenti.');
+  const total = await client.query(
+    'SELECT coalesce(sum(quantity*unit_price*(1+vat_rate/100)),0) AS amount FROM invoice_lines WHERE invoice_id=$1',
+    [invoiceId]
+  );
+  const paid = await client.query(
+    'SELECT coalesce(sum(amount),0) AS amount FROM payments WHERE invoice_id=$1',
+    [invoiceId]
+  );
+  const amount = Number(amountValue);
+  const due = Number(total.rows[0].amount) - Number(paid.rows[0].amount);
+  if (!Number.isFinite(amount) || amount <= 0 || amount > due + 0.005) {
+    throw new Error('Importo non valido o superiore al residuo.');
+  }
+  if (!['cash','card','bank_transfer','other'].includes(method)) {
+    throw new Error('Metodo di pagamento non valido.');
+  }
+  await client.query(
+    'INSERT INTO payments(invoice_id,amount,method,reference,created_by) VALUES($1,$2,$3,$4,$5)',
+    [invoiceId, amount, method, String(reference || '').slice(0,180), userId]
+  );
+  const newPaid = Number(paid.rows[0].amount) + amount;
+  const fullyPaid = newPaid + 0.005 >= Number(total.rows[0].amount);
+  await client.query('UPDATE invoices SET status=$1 WHERE id=$2', [fullyPaid ? 'paid' : 'partial', invoiceId]);
+  const workOrderId = invoice.rows[0].work_order_id;
+  if (fullyPaid && shouldAdvanceWorkflowAfterPayment(invoice.rows[0].work_order_status)) {
+    await advanceWorkflow(client, workOrderId, 'billing', userId);
+  }
+  return { fullyPaid, workOrderId, status: fullyPaid ? 'paid' : 'partial' };
+}
+
+module.exports = { reserveEstimateParts, consumeInvoiceParts, recordInvoicePayment };
