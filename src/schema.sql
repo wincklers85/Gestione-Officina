@@ -24,7 +24,7 @@ CREATE TABLE IF NOT EXISTS workshop_settings (
   hourly_rate NUMERIC(10,2) NOT NULL DEFAULT 55,
   repair_terms TEXT NOT NULL DEFAULT '',
   privacy_notice TEXT NOT NULL DEFAULT '',
-  document_prefix TEXT NOT NULL DEFAULT 'GO',
+  document_prefix TEXT NOT NULL DEFAULT 'O',
   warranty_days INTEGER NOT NULL DEFAULT 365 CHECK (warranty_days BETWEEN 0 AND 3650),
   opening_time TIME NOT NULL DEFAULT '08:00',
   closing_time TIME NOT NULL DEFAULT '18:00',
@@ -33,7 +33,7 @@ CREATE TABLE IF NOT EXISTS workshop_settings (
 );
 ALTER TABLE workshop_settings ADD COLUMN IF NOT EXISTS repair_terms TEXT NOT NULL DEFAULT '';
 ALTER TABLE workshop_settings ADD COLUMN IF NOT EXISTS privacy_notice TEXT NOT NULL DEFAULT '';
-ALTER TABLE workshop_settings ADD COLUMN IF NOT EXISTS document_prefix TEXT NOT NULL DEFAULT 'GO';
+ALTER TABLE workshop_settings ADD COLUMN IF NOT EXISTS document_prefix TEXT NOT NULL DEFAULT 'O';
 ALTER TABLE workshop_settings ADD COLUMN IF NOT EXISTS warranty_days INTEGER NOT NULL DEFAULT 365;
 ALTER TABLE workshop_settings ADD COLUMN IF NOT EXISTS logo_data BYTEA;
 ALTER TABLE workshop_settings ADD COLUMN IF NOT EXISTS logo_mime TEXT NOT NULL DEFAULT 'image/png';
@@ -108,10 +108,16 @@ CREATE TABLE IF NOT EXISTS work_orders (
   origin_work_order_id BIGINT REFERENCES work_orders(id),
   created_by BIGINT REFERENCES users(id),
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  order_date DATE,
+  daily_sequence INTEGER,
+  order_number TEXT
 );
 ALTER TABLE work_orders ADD COLUMN IF NOT EXISTS return_type TEXT NOT NULL DEFAULT 'new';
 ALTER TABLE work_orders ADD COLUMN IF NOT EXISTS origin_work_order_id BIGINT REFERENCES work_orders(id);
+ALTER TABLE work_orders ADD COLUMN IF NOT EXISTS order_date DATE;
+ALTER TABLE work_orders ADD COLUMN IF NOT EXISTS daily_sequence INTEGER;
+ALTER TABLE work_orders ADD COLUMN IF NOT EXISTS order_number TEXT;
 CREATE TABLE IF NOT EXISTS work_order_workflow_steps (
   work_order_id BIGINT NOT NULL REFERENCES work_orders(id) ON DELETE CASCADE,
   step_key TEXT NOT NULL CHECK (step_key IN ('intake','inspection','parts','repair','quality','billing','delivery')),
@@ -730,6 +736,62 @@ END $$;
 ALTER TABLE workshop_settings DROP CONSTRAINT IF EXISTS workshop_settings_pkey;
 ALTER TABLE workshop_settings ADD PRIMARY KEY (workshop_id,id);
 INSERT INTO workshop_settings(id,workshop_id) VALUES(1,1) ON CONFLICT(workshop_id,id) DO NOTHING;
+
+-- Each workshop can configure the order prefix; existing default GO values become name initials.
+WITH named_workshops AS (
+  SELECT s.workshop_id, regexp_split_to_array(trim(coalesce(w.name,'')), '\s+') AS words
+  FROM workshop_settings s JOIN workshops w ON w.id=s.workshop_id
+  WHERE s.id=1 AND upper(trim(s.document_prefix)) IN ('GO','')
+)
+UPDATE workshop_settings s
+SET document_prefix = CASE WHEN cardinality(n.words)>=2 THEN upper(left(n.words[1],1)||left(n.words[2],1)) ELSE 'O' END
+FROM named_workshops n WHERE s.workshop_id=n.workshop_id AND s.id=1;
+
+WITH numbered AS (
+  SELECT w.id, w.workshop_id,
+    (w.created_at AT TIME ZONE 'Europe/Rome')::date AS order_date,
+    row_number() OVER (PARTITION BY w.workshop_id,(w.created_at AT TIME ZONE 'Europe/Rome')::date ORDER BY w.created_at,w.id)::integer AS daily_sequence,
+    coalesce(nullif(regexp_replace(upper(s.document_prefix),'[^A-Z0-9]','','g'),''),'O') AS prefix
+  FROM work_orders w
+  LEFT JOIN workshop_settings s ON s.workshop_id=w.workshop_id AND s.id=1
+  WHERE w.order_date IS NULL OR w.daily_sequence IS NULL OR w.order_number IS NULL
+)
+UPDATE work_orders w SET order_date=n.order_date,daily_sequence=n.daily_sequence,
+  order_number=n.prefix||'-'||to_char(n.order_date,'DDMMYY')||'/'||n.daily_sequence
+FROM numbered n WHERE w.id=n.id;
+ALTER TABLE work_orders ALTER COLUMN order_date SET NOT NULL;
+ALTER TABLE work_orders ALTER COLUMN daily_sequence SET NOT NULL;
+ALTER TABLE work_orders ALTER COLUMN order_number SET NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS work_orders_daily_sequence_unique ON work_orders(workshop_id,order_date,daily_sequence);
+CREATE UNIQUE INDEX IF NOT EXISTS work_orders_number_unique ON work_orders(workshop_id,order_number);
+
+CREATE OR REPLACE FUNCTION assign_work_order_daily_number() RETURNS trigger LANGUAGE plpgsql AS $function$
+DECLARE
+  local_day DATE;
+  next_sequence INTEGER;
+  prefix TEXT;
+BEGIN
+  IF NEW.workshop_id IS NULL THEN
+    NEW.workshop_id := nullif(current_setting('app.workshop_id',true),'')::bigint;
+  END IF;
+  IF NEW.workshop_id IS NULL THEN RAISE EXCEPTION 'Missing workshop for work order'; END IF;
+  PERFORM id FROM workshops WHERE id=NEW.workshop_id FOR UPDATE;
+  IF NOT FOUND THEN RAISE EXCEPTION 'Workshop not found for work order'; END IF;
+  local_day := (coalesce(NEW.created_at,now()) AT TIME ZONE 'Europe/Rome')::date;
+  SELECT coalesce(nullif(regexp_replace(upper(document_prefix),'[^A-Z0-9]','','g'),''),'O')
+    INTO prefix FROM workshop_settings WHERE workshop_id=NEW.workshop_id AND id=1;
+  prefix := coalesce(prefix,'O');
+  SELECT coalesce(max(daily_sequence),0)+1 INTO next_sequence
+    FROM work_orders WHERE workshop_id=NEW.workshop_id AND order_date=local_day;
+  NEW.order_date := local_day;
+  NEW.daily_sequence := next_sequence;
+  NEW.order_number := prefix||'-'||to_char(local_day,'DDMMYY')||'/'||next_sequence;
+  RETURN NEW;
+END;
+$function$;
+DROP TRIGGER IF EXISTS work_orders_assign_daily_number ON work_orders;
+CREATE TRIGGER work_orders_assign_daily_number BEFORE INSERT ON work_orders
+FOR EACH ROW EXECUTE FUNCTION assign_work_order_daily_number();
 
 DO $$
 DECLARE t TEXT;
