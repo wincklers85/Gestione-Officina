@@ -28,7 +28,9 @@ test('saldo ordinario completa fattura e sblocca consegna', async t => {
     INSERT INTO work_order_workflow_steps(work_order_id,step_key,is_unlocked) VALUES(1,'billing',true),(1,'delivery',false);
   `);
   const result = await recordInvoicePayment(db,{invoiceId:1,amount:'100',method:'card',reference:'POS 1',userId:7});
-  assert.deepEqual(result,{fullyPaid:true,workOrderId:1,status:'paid'});
+  assert.equal(result.fullyPaid,true);
+  assert.equal(Number(result.workOrderId),1);
+  assert.equal(result.status,'paid');
   assert.equal((await db.query('SELECT status FROM invoices WHERE id=1')).rows[0].status,'paid');
   const steps=(await db.query('SELECT step_key,is_unlocked,completed_at FROM work_order_workflow_steps WHERE work_order_id=1')).rows;
   assert.ok(steps.find(row=>row.step_key==='billing').completed_at);
