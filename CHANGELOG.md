@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.15.17 — 30/09/2026
+
+- Aggiunta la ricerca nell’elenco ordini: i lavori chiusi, inclusi i ritiri anticipati, si trovano per numero GO, targa, VIN, modello o cliente e aprono la scheda storica in consultazione.
+
 ## 0.15.16 — 30/09/2026
 
 - Estratta la registrazione dei pagamenti in una transazione verificabile; aggiunti test PostgreSQL per saldo ordinario, pagamento parziale e documento di chiusura anticipata.
