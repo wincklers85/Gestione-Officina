@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.16.0 — 30/09/2026
+
+- La nuova accettazione da tablet ora accompagna l’operatore nella ricerca o creazione del cliente, poi nella ricerca o registrazione dell’auto e infine nei dati di ingresso.
+- La ricerca cliente mostra corrispondenze per nome, codice fiscale, telefono ed email, incluse varianti simili del nome. La ricerca auto mostra targa, VIN e precedenti interventi.
+- Se due contatti hanno lo stesso codice fiscale, GO propone il confronto completo prima della fusione. L’operatore sceglie quale scheda mantenere; veicoli, appuntamenti, ordini, documenti firmati e richieste privacy vengono ricollegati, con operazione registrata nel log.
+- Ridotto di 1,5 pt il corpo di condizioni di riparazione e informativa privacy nel PDF di accettazione per evitare una seconda pagina con poco testo.
+
 ## 0.15.17 — 30/09/2026
 
 - Aggiunta la ricerca nell’elenco ordini: i lavori chiusi, inclusi i ritiri anticipati, si trovano per numero GO, targa, VIN, modello o cliente e aprono la scheda storica in consultazione.
