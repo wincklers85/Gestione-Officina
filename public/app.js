@@ -1,3 +1,7 @@
+window.__goFeedbackErrors=window.__goFeedbackErrors||[];
+const goRedactDebug=value=>String(value||'').replace(/[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}/g,'[email]').replace(/\b(?:\+?\d[\d ()-]{7,}\d)\b/g,'[telefono]').replace(/\b[A-Z]{2}\s?\d{3,4}[A-Z]{0,2}\b/gi,'[targa]').slice(0,240);
+window.addEventListener('error',event=>{window.__goFeedbackErrors.push({name:event.error?.name||'Error',message:goRedactDebug(event.message),source:String(event.filename||'').split('/').pop().slice(0,60),line:event.lineno||0,column:event.colno||0});if(window.__goFeedbackErrors.length>6)window.__goFeedbackErrors.shift();});
+window.addEventListener('unhandledrejection',event=>{const reason=event.reason;window.__goFeedbackErrors.push({name:reason?.name||'UnhandledRejection',message:goRedactDebug(reason?.message||reason),source:'',line:0,column:0});if(window.__goFeedbackErrors.length>6)window.__goFeedbackErrors.shift();});
 document.addEventListener('DOMContentLoaded',()=>{
   const warrantyPrompt=document.querySelector('#warranty-return-prompt');
   if(warrantyPrompt){
@@ -257,4 +261,18 @@ document.addEventListener('DOMContentLoaded',()=>{
   });
   const expiresAt=Number(document.body?.dataset.sessionExpiresAt||0);
   if(expiresAt){const checkExpiry=()=>{const remaining=expiresAt-Date.now();if(remaining<=0)window.location.replace('/login?expired=1');else window.setTimeout(checkExpiry,Math.min(remaining,2147480000));};checkExpiry();}
+});
+
+
+document.addEventListener('DOMContentLoaded',()=>{
+  const dialog=document.querySelector('#feedback-dialog'),form=document.querySelector('#feedback-form'),status=document.querySelector('#feedback-submit-status');
+  document.querySelectorAll('[data-open-feedback]').forEach(button=>button.addEventListener('click',()=>{if(dialog?.showModal)dialog.showModal();else dialog?.setAttribute('open','');}));
+  dialog?.querySelectorAll('[data-close-feedback]').forEach(button=>button.addEventListener('click',()=>dialog.close()));
+  form?.addEventListener('submit',async event=>{event.preventDefault();const submit=form.querySelector('button[type="submit"]');if(submit)submit.disabled=true;if(status)status.textContent='Invio in corso…';
+    const tz=(()=>{try{return Intl.DateTimeFormat().resolvedOptions().timeZone||''}catch{return''}})();
+    const diagnostics={path:location.pathname,browser:navigator.userAgent||'',language:navigator.language||'',timezone:tz,viewport:{width:window.innerWidth,height:window.innerHeight},errors:(window.__goFeedbackErrors||[]).slice(-6)};
+    try{const csrf=form.querySelector('[name="_csrf"]')?.value||document.querySelector('meta[name="csrf-token"]')?.content||'';const payload=Object.fromEntries(new FormData(form));payload.diagnostics=diagnostics;
+      const response=await fetch('/api/feedback',{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json','X-CSRF-Token':csrf},body:JSON.stringify(payload)});const result=await response.json();if(!response.ok)throw new Error(result.error||'Invio non riuscito.');form.reset();if(status)status.textContent='Grazie, la segnalazione è stata inviata.';setTimeout(()=>dialog.close(),900);
+    }catch(error){if(status)status.textContent=error.message||'Invio non riuscito. Riprova.';}finally{if(submit)submit.disabled=false;}
+  });
 });

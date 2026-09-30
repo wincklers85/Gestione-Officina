@@ -52,3 +52,11 @@ body[data-theme="mono"] .card,body[data-theme="mono"] .sidebar,body[data-theme="
 @media(max-width:760px){.user-menu>summary{min-width:115px;padding:7px 30px 7px 9px;font-size:12px}.user-menu>summary:after{right:9px;top:10px}.user-menu-panel{right:0}.topbar{align-items:flex-start}.logout-dialog{padding:20px}}
 
 body[data-theme="contrast"] .button.primary{background:#000;color:#fff;border:2px solid #000}body[data-theme="contrast"] .button.primary:hover{background:#222;color:#fff}
+
+
+/* Feedback intake and superadmin inbox */
+.feedback-trigger{background:#fff7f1;border-color:#f36c21;color:#9b4313;font-weight:700;white-space:nowrap}
+.feedback-dialog{width:min(620px,calc(100vw - 28px));max-height:calc(100vh - 32px);overflow:auto;border:1px solid var(--line);border-radius:18px;padding:24px;background:var(--paper);color:var(--ink);box-shadow:0 24px 70px rgba(15,28,44,.28)}
+.feedback-dialog::backdrop{background:rgba(15,28,44,.5)}
+.feedback-dialog form{display:grid;gap:10px}.feedback-dialog-head,.feedback-report-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}.feedback-dialog h2{margin:4px 0 10px}.feedback-dialog label{font-weight:700;margin-top:4px}.feedback-dialog input,.feedback-dialog select,.feedback-dialog textarea{width:100%}.feedback-dialog textarea{resize:vertical;min-height:120px}.feedback-privacy-note{font-size:.9rem;line-height:1.45;margin:4px 0}.feedback-submit-status{min-height:1.4em;color:var(--green);font-weight:700;margin:0}.feedback-report{margin-top:14px}.feedback-report h2{font-size:1.15rem;margin:10px 0 4px}.feedback-report-head form{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.feedback-description{white-space:pre-wrap;line-height:1.55}.feedback-report pre{white-space:pre-wrap;overflow-wrap:anywhere;background:var(--wash);padding:14px;border-radius:10px;font-size:.84rem}.top-actions{flex-wrap:wrap;justify-content:flex-end}
+@media(max-width:760px){.feedback-trigger{font-size:12px;padding:7px 9px}.feedback-dialog{padding:18px}.feedback-report-head{display:block}.feedback-report-head form{margin-top:12px}}

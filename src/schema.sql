@@ -644,6 +644,19 @@ CREATE TABLE IF NOT EXISTS registration_requests (
   reviewed_by BIGINT REFERENCES platform_admins(id),
   review_note TEXT NOT NULL DEFAULT ''
 );
+CREATE TABLE IF NOT EXISTS feedback_reports (
+  id BIGSERIAL PRIMARY KEY,
+  workshop_id BIGINT,
+  user_id BIGINT REFERENCES users(id) ON DELETE SET NULL,
+  category TEXT NOT NULL CHECK (category IN ('problem','suggestion')),
+  summary TEXT NOT NULL,
+  description TEXT NOT NULL,
+  diagnostics JSONB NOT NULL DEFAULT '{}'::jsonb,
+  status TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open','reviewing','resolved')),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS feedback_reports_status_date_idx ON feedback_reports(status,created_at DESC);
 CREATE TABLE IF NOT EXISTS licenses (
   id BIGSERIAL PRIMARY KEY,
   workshop_id BIGINT NOT NULL REFERENCES workshops(id) ON DELETE CASCADE,
@@ -676,7 +689,7 @@ BEGIN
     'work_operations','operation_assignments','work_order_updates','time_entries','time_entry_adjustments','estimates','customer_action_tokens','customer_portal_tokens','estimate_customer_responses','estimate_lines',
     'inventory_items','stock_movements','inventory_reservations','suppliers','purchase_orders',
     'purchase_order_lines','invoices','invoice_lines','payments','quality_checks','road_tests',
-    'documents','document_acceptances','intake_photos','intake_print_requests','intake_acceptances','customer_screen_sessions','vehicle_reconstructions','privacy_requests','role_module_permissions','user_notifications','calendar_reminders','user_module_permissions','tablet_devices','vehicle_deliveries','warranty_cases','warranty_events','supplier_return_cases','supplier_return_events','audit_log'
+    'documents','document_acceptances','intake_photos','intake_print_requests','intake_acceptances','customer_screen_sessions','vehicle_reconstructions','privacy_requests','role_module_permissions','user_notifications','calendar_reminders','user_module_permissions','tablet_devices','vehicle_deliveries','warranty_cases','warranty_events','supplier_return_cases','supplier_return_events','audit_log','feedback_reports'
   ] LOOP
     EXECUTE format('ALTER TABLE %I ADD COLUMN IF NOT EXISTS workshop_id BIGINT',t);
     EXECUTE format('UPDATE %I SET workshop_id=1 WHERE workshop_id IS NULL',t);
@@ -702,7 +715,7 @@ BEGIN
     'work_operations','operation_assignments','work_order_updates','time_entries','time_entry_adjustments','estimates','customer_action_tokens','customer_portal_tokens','estimate_customer_responses','estimate_lines',
     'inventory_items','stock_movements','inventory_reservations','suppliers','purchase_orders',
     'purchase_order_lines','invoices','invoice_lines','payments','quality_checks','road_tests',
-    'documents','document_acceptances','intake_photos','intake_print_requests','intake_acceptances','customer_screen_sessions','vehicle_reconstructions','privacy_requests','role_module_permissions','user_notifications','calendar_reminders','user_module_permissions','tablet_devices','vehicle_deliveries','warranty_cases','warranty_events','supplier_return_cases','supplier_return_events','audit_log','licenses'
+    'documents','document_acceptances','intake_photos','intake_print_requests','intake_acceptances','customer_screen_sessions','vehicle_reconstructions','privacy_requests','role_module_permissions','user_notifications','calendar_reminders','user_module_permissions','tablet_devices','vehicle_deliveries','warranty_cases','warranty_events','supplier_return_cases','supplier_return_events','audit_log','feedback_reports','licenses'
   ] LOOP
     EXECUTE format('ALTER TABLE %I ENABLE ROW LEVEL SECURITY',t);
     EXECUTE format('ALTER TABLE %I FORCE ROW LEVEL SECURITY',t);
