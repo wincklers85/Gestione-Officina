@@ -1,7 +1,7 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { PGlite } = require('@electric-sql/pglite');
-const { steps, stepState, warrantyEligible, initializeWorkflow, advanceWorkflow, shouldAdvanceWorkflowAfterPayment } = require('../src/work-order-workflow');
+const { steps, stepState, warrantyEligible, initializeWorkflow, advanceWorkflow, unlockBillingAfterRepair, shouldAdvanceWorkflowAfterPayment } = require('../src/work-order-workflow');
 
 async function setup() {
   const db = new PGlite();
@@ -68,7 +68,22 @@ test('il pagamento avanza la consegna solo per ordini in fatturazione', () => {
   assert.equal(shouldAdvanceWorkflowAfterPayment('ready'), false);
 });
 
-test('collaudo e saldo aprono la fattura e poi la consegna; la consegna non si chiude come fase standard', async t => {
+test('dopo la riparazione la fatturazione si sblocca anche se il collaudo resta incompleto', async t => {
+  const db = await setup();
+  t.after(() => db.close());
+  await initializeWorkflow(db, 22, 4);
+  await advanceWorkflow(db, 22, 'inspection', 4);
+  await advanceWorkflow(db, 22, 'parts', 4);
+  assert.equal(await advanceWorkflow(db, 22, 'repair', 4), 'quality');
+  assert.equal(await unlockBillingAfterRepair(db, 22, 4), 'billing');
+  const rows = (await db.query('SELECT * FROM work_order_workflow_steps WHERE work_order_id=22')).rows;
+  assert.equal(stepState(steps.find(step => step.key === 'quality'), rows).unlocked, true);
+  assert.equal(stepState(steps.find(step => step.key === 'quality'), rows).complete, false);
+  assert.equal(stepState(steps.find(step => step.key === 'billing'), rows).unlocked, true);
+  assert.equal((await db.query("SELECT action FROM audit_log WHERE action='workflow_quality_optional_for_billing'")).rowCount, 1);
+});
+
+test('collaudo completato e saldo aprono la consegna; la consegna non si chiude come fase standard', async t => {
   const db = await setup();
   t.after(() => db.close());
   await initializeWorkflow(db, 21, 4);
