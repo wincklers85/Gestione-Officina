@@ -242,3 +242,19 @@ document.addEventListener('DOMContentLoaded',()=>{
   });
   updateReadyButtons();
 });
+
+
+document.addEventListener('DOMContentLoaded',()=>{
+  const logoutDialog=document.querySelector('#logout-confirm-dialog');
+  document.querySelectorAll('[data-open-logout]').forEach(button=>button.addEventListener('click',()=>{
+    if(logoutDialog?.showModal)logoutDialog.showModal();
+    else if(window.confirm('Vuoi uscire dal gestionale?'))document.querySelector('#logout-confirm-form')?.requestSubmit();
+  }));
+  logoutDialog?.querySelectorAll('[data-dismiss-logout]').forEach(button=>button.addEventListener('click',()=>logoutDialog.close()));
+  document.querySelectorAll('form[action="/logout"],form[action="/superuser/logout"]').forEach(form=>{
+    if(form.id==='logout-confirm-form')return;
+    form.addEventListener('submit',event=>{event.preventDefault();if(logoutDialog?.showModal)logoutDialog.showModal();else if(window.confirm('Vuoi uscire dal gestionale?'))form.submit();});
+  });
+  const expiresAt=Number(document.body?.dataset.sessionExpiresAt||0);
+  if(expiresAt){const remaining=expiresAt-Date.now();if(remaining<=0)window.location.replace('/login?expired=1');else window.setTimeout(()=>window.location.replace('/login?expired=1'),remaining);}
+});
