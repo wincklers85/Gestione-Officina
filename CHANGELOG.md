@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.17.0 — 30/09/2026
+
+- In alto nel Gestionale trovi il menu con il nome dell’utente, Impostazioni profilo e logout con conferma.
+- Dal profilo puoi cambiare la password, scegliere il tema Chiaro, Scuro, Alto contrasto o Monocromatico e impostare la scadenza della sessione: 1 ora, 1 giorno, 1 settimana o 1 mese.
+- La durata predefinita è una settimana; alla scadenza la sessione viene chiusa automaticamente.
+
 ## 0.16.1 — 30/09/2026
 
 - Il check-in Tablet usa un solo campo per cercare o inserire il cliente. Le proposte riconoscono nomi simili e l’ordine nome/cognome; scegliendo un cliente, vengono mostrati i veicoli già portati in officina.
