@@ -27,12 +27,11 @@ const softwareHouseUrl = 'https://winlabs.onrender.com';
 const releases = [{
   version: appVersion,
   date: '2026-09-30',
-  title: 'Accettazione guidata e anagrafiche senza duplicati',
+  title: 'Profilo utente e sessione personalizzata',
   changes: [
-    'La nuova accettazione da tablet è un wizard per cercare o creare prima il cliente e poi l’auto, consultando gli interventi precedenti.',
-    'Avvisi per nomi simili e codici fiscali già presenti aiutano a non creare contatti duplicati.',
-    'La fusione dei contatti richiede confronto dei dati e scelta della scheda da mantenere; i riferimenti allo storico vengono trasferiti e l’operazione è registrata.',
-    'Ridotto di 1,5 pt il testo di condizioni di riparazione e informativa privacy nel PDF di accettazione.'
+    'Apri le Impostazioni profilo dal menu con il nome in alto: aggiorna la password e scegli il tema personale.',
+    'Imposta la chiusura automatica della sessione dopo un’ora, un giorno, una settimana o un mese.',
+    'La durata predefinita è una settimana; il logout manuale chiede conferma.'
   ]
 }, {
   version: '0.13.0',
