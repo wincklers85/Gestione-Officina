@@ -47,6 +47,22 @@ function shouldAdvanceWorkflowAfterPayment(workOrderStatus) {
   return workOrderStatus === 'invoiced';
 }
 
+async function unlockBillingAfterRepair(client, workOrderId, userId) {
+  const unlocked = await client.query(
+    `UPDATE work_order_workflow_steps AS billing SET is_unlocked=true,unlocked_at=now(),unlocked_by=$2
+     WHERE billing.work_order_id=$1 AND billing.step_key='billing' AND billing.completed_at IS NULL
+       AND EXISTS (SELECT 1 FROM work_order_workflow_steps quality WHERE quality.work_order_id=$1 AND quality.step_key='quality' AND quality.is_unlocked=true AND quality.completed_at IS NULL)
+     RETURNING billing.step_key`,
+    [workOrderId, userId]
+  );
+  if (!unlocked.rowCount) throw new Error('La fase Fattura e incasso non può essere sbloccata prima delle lavorazioni.');
+  await client.query(
+    `INSERT INTO audit_log(user_id,action,entity_type,entity_id,details) VALUES($1,'workflow_quality_optional_for_billing','work_order',$2,$3)`,
+    [userId, String(workOrderId), JSON.stringify({unlocked: 'billing', qualityCompleted: false})]
+  );
+  return 'billing';
+}
+
 async function advanceWorkflow(client, workOrderId, stepKey, userId) {
   const index = steps.findIndex(step => step.key === stepKey);
   if (index < 0 || stepKey === 'delivery') throw new Error('Questa fase non si completa con il comando standard.');
@@ -69,4 +85,4 @@ async function advanceWorkflow(client, workOrderId, stepKey, userId) {
   return next.key;
 }
 
-module.exports = { steps, stepState, warrantyEligible, initializeWorkflow, advanceWorkflow, shouldAdvanceWorkflowAfterPayment };
+module.exports = { steps, stepState, warrantyEligible, initializeWorkflow, advanceWorkflow, unlockBillingAfterRepair, shouldAdvanceWorkflowAfterPayment };
