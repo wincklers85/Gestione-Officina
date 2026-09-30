@@ -4,6 +4,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   const name=form.querySelector('[name="name"]'),tax=form.querySelector('[name="tax_code"]');
   if(!name||!tax)return;
   const editMatch=form.action.match(/\/customers\/(\d+)\/edit$/),currentId=editMatch?editMatch[1]:'';
+  const stylesheet=document.createElement('link');stylesheet.rel='stylesheet';stylesheet.href='/customer-merge.css';document.head.append(stylesheet);
   const panel=document.createElement('div');panel.className='customer-match-panel';panel.setAttribute('aria-live','polite');tax.closest('label')?.after(panel);
   let timer;
   const check=async()=>{
@@ -12,7 +13,7 @@ document.addEventListener('DOMContentLoaded',()=>{
       const response=await fetch('/intake/search/customers?q='+encodeURIComponent(q),{headers:{Accept:'application/json'}});
       const data=await response.json(),matches=data.results||[];
       const clean=value=>String(value||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
-      const exact=tax.value.trim()?matches.filter(row=>clean(row.tax_code)===clean(tax.value)):[],similar=matches.filter(row=>row.id!==Number(currentId)&&row.name.toLowerCase()!==name.value.trim().toLowerCase()).slice(0,4);
+      const exact=tax.value.trim()?matches.filter(row=>Number(row.id)!==Number(currentId)&&clean(row.tax_code)===clean(tax.value)):[],similar=matches.filter(row=>Number(row.id)!==Number(currentId)&&row.name.toLowerCase()!==name.value.trim().toLowerCase()).slice(0,4);
       panel.replaceChildren();
       if(exact.length){
         const title=document.createElement('strong');title.textContent='Attenzione: questo codice fiscale è già presente.';panel.append(title);
