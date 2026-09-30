@@ -32,8 +32,8 @@ module.exports = function attachIntakeSearch(app,pool,needAuth){
         "LEFT JOIN customers wc ON wc.id=w.customer_id",
         "LEFT JOIN LATERAL (SELECT prior.id AS origin_work_order_id,vd.delivered_at AS last_delivered_at FROM work_orders prior JOIN vehicle_deliveries vd ON vd.work_order_id=prior.id WHERE prior.vehicle_id=v.id ORDER BY vd.delivered_at DESC LIMIT 1) d ON true",
         "CROSS JOIN workshop_settings s",
-        "WHERE (($1='' AND $3::bigint IS NOT NULL AND (v.customer_id=$3 OR EXISTS(SELECT 1 FROM work_orders mine WHERE mine.vehicle_id=v.id AND mine.customer_id=$3)))",
-        "OR ($1<>'' AND (v.plate ILIKE $2 OR v.vin ILIKE $2 OR v.make ILIKE $2 OR v.model ILIKE $2 OR c.name ILIKE $2)))",
+        "WHERE ($1='' AND $3::bigint IS NOT NULL AND (v.customer_id=$3 OR EXISTS(SELECT 1 FROM work_orders mine WHERE mine.vehicle_id=v.id AND mine.customer_id=$3))",
+        "OR ($1<>'' AND (v.plate ILIKE $2 OR v.vin ILIKE $2 OR v.make ILIKE $2 OR v.model ILIKE $2 OR c.name ILIKE $2))",
         "GROUP BY v.id,c.name,d.origin_work_order_id,d.last_delivered_at,s.warranty_days",
         "ORDER BY CASE WHEN $3::bigint IS NOT NULL AND (v.customer_id=$3 OR EXISTS(SELECT 1 FROM work_orders mine WHERE mine.vehicle_id=v.id AND mine.customer_id=$3)) THEN 0 ELSE 1 END,",
         "CASE WHEN upper(v.plate)=upper($4) THEN 0 WHEN upper(v.vin)=upper($4) THEN 1 ELSE 2 END,v.created_at DESC LIMIT 30"
