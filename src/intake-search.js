@@ -4,7 +4,7 @@ module.exports = function attachIntakeSearch(app,pool,needAuth){
       const q=String(req.query.q||'').trim().slice(0,100);
       if(q.length<2)return res.json({results:[]});
       const normalized=q.toUpperCase().replace(/[^A-Z0-9]/g,'');
-      const found=await pool.query("SELECT id,kind,name,tax_code,vat_number,email,phone,address FROM customers WHERE name ILIKE $1 OR tax_code ILIKE $1 OR upper(regexp_replace(tax_code,'[^A-Z0-9]','','g'))=$2 OR phone ILIKE $1 OR email ILIKE $1 ORDER BY created_at DESC LIMIT 1000",['%'+q+'%',normalized]);
+      const found=await pool.query("SELECT id,kind,name,tax_code,vat_number,email,phone,address FROM customers WHERE name ILIKE $1 OR tax_code ILIKE $1 OR upper(regexp_replace(tax_code,'[^A-Z0-9]','','g'))=$2 OR phone ILIKE $1 OR email ILIKE $1 OR id IN (SELECT id FROM customers ORDER BY created_at DESC LIMIT 5000) ORDER BY created_at DESC LIMIT 5000",['%'+q+'%',normalized]);
       const normalize=value=>String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
       const target=normalize(q);
       const distance=(a,b)=>{const row=Array.from({length:b.length+1},(_,i)=>i);for(let i=1;i<=a.length;i++){let prev=row[0];row[0]=i;for(let j=1;j<=b.length;j++){const old=row[j];row[j]=Math.min(row[j]+1,row[j-1]+1,prev+(a[i-1]===b[j-1]?0:1));prev=old;}}return row[b.length];};
