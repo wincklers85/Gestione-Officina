@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.15.16 — 30/09/2026
+
+- Estratta la registrazione dei pagamenti in una transazione verificabile; aggiunti test PostgreSQL per saldo ordinario, pagamento parziale e documento di chiusura anticipata.
+
 ## 0.15.15 — 30/09/2026
 
 - Corretto il passaggio di stato: dopo i requisiti dedicati, Collaudo e Fattura si completano e sbloccano la fase successiva fino alla Consegna.
