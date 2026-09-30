@@ -276,3 +276,19 @@ document.addEventListener('DOMContentLoaded',()=>{
     }catch(error){if(status)status.textContent=error.message||'Invio non riuscito. Riprova.';}finally{if(submit)submit.disabled=false;}
   });
 });
+
+
+document.addEventListener('DOMContentLoaded',()=>{
+  const form=document.querySelector('.password-reset-form');if(!form)return;
+  const token=location.hash.length>1?decodeURIComponent(location.hash.slice(1)):'';
+  if(token){const field=form.querySelector('[name="token"]');if(field)field.value=token;history.replaceState(null,'',location.pathname);}
+  else{const notice=document.querySelector('#reset-link-status');if(notice)notice.hidden=false;form.querySelectorAll('input,button').forEach(control=>control.disabled=true);}
+});
+
+
+document.addEventListener('click',async event=>{
+  const button=event.target.closest?.('[data-copy-reset-link]');if(!button)return;
+  const field=document.querySelector('.reset-link-field'),status=document.querySelector('#reset-link-copy-status');if(!field)return;
+  try{if(navigator.clipboard?.writeText)await navigator.clipboard.writeText(field.value);else{field.select();document.execCommand('copy');}if(status)status.textContent='Link copiato.';}
+  catch{field.focus();field.select();if(status)status.textContent='Seleziona e copia il link.';}
+});
