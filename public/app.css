@@ -50,3 +50,5 @@ body[data-theme="contrast"] input,body[data-theme="contrast"] select,body[data-t
 body[data-theme="mono"]{color-scheme:light;--ink:#171717;--muted:#4a4a4a;--line:#b8b8b8;--paper:#fff;--wash:#f2f2f2;--orange:#444;--orange-dark:#222;--blue:#252525;--green:#444;--shadow:0 2px 8px rgba(0,0,0,.08);background:var(--wash);color:var(--ink)}
 body[data-theme="mono"] .card,body[data-theme="mono"] .sidebar,body[data-theme="mono"] .user-menu>summary,body[data-theme="mono"] .user-menu-panel,body[data-theme="mono"] .logout-dialog{background:var(--paper);color:var(--ink)}
 @media(max-width:760px){.user-menu>summary{min-width:115px;padding:7px 30px 7px 9px;font-size:12px}.user-menu>summary:after{right:9px;top:10px}.user-menu-panel{right:0}.topbar{align-items:flex-start}.logout-dialog{padding:20px}}
+
+body[data-theme="contrast"] .button.primary{background:#000;color:#fff;border:2px solid #000}body[data-theme="contrast"] .button.primary:hover{background:#222;color:#fff}
