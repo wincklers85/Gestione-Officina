@@ -231,3 +231,6 @@
  .tablet-quality-sheet>details>summary{padding:15px;font-size:17px}
  .tablet-quality-sheet>details>p,.tablet-quality-sheet>details>form,.tablet-quality-sheet .table-wrap,.tablet-quality-sheet .quality-final-action{margin:12px}
 }
+
+.tablet-road-test-form{display:grid;gap:10px;margin:16px 18px;padding:14px;border:1px solid #e0e6ed;border-radius:12px;background:#f8fafb}.tablet-road-test-form .form-grid{margin:0}.tablet-road-test-form label{min-width:0;margin:0}.tablet-road-test-form>.button{justify-self:start}
+@media(max-width:700px){.tablet-road-test-form{margin:12px;padding:12px}.tablet-road-test-form .form-grid{grid-template-columns:1fr}}
