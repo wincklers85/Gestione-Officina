@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.16.1 — 30/09/2026
+
+- Il check-in Tablet usa un solo campo per cercare o inserire il cliente. Le proposte riconoscono nomi simili e l’ordine nome/cognome; scegliendo un cliente, vengono mostrati i veicoli già portati in officina.
+- La ricerca della targa mostra la cronologia degli interventi con i rispettivi clienti. Un’auto venduta può essere accettata con il nuovo proprietario: il nuovo lavoro viene intestato al cliente attuale e gli interventi precedenti restano consultabili.
+- La scheda cliente include anche le auto già portate in officina, comprese quelle registrate in origine a un altro cliente.
+
 ## 0.16.0 — 30/09/2026
 
 - La nuova accettazione da tablet ora accompagna l’operatore nella ricerca o creazione del cliente, poi nella ricerca o registrazione dell’auto e infine nei dati di ingresso.
