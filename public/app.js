@@ -256,5 +256,5 @@ document.addEventListener('DOMContentLoaded',()=>{
     form.addEventListener('submit',event=>{event.preventDefault();if(logoutDialog?.showModal)logoutDialog.showModal();else if(window.confirm('Vuoi uscire dal gestionale?'))form.submit();});
   });
   const expiresAt=Number(document.body?.dataset.sessionExpiresAt||0);
-  if(expiresAt){const remaining=expiresAt-Date.now();if(remaining<=0)window.location.replace('/login?expired=1');else window.setTimeout(()=>window.location.replace('/login?expired=1'),remaining);}
+  if(expiresAt){const checkExpiry=()=>{const remaining=expiresAt-Date.now();if(remaining<=0)window.location.replace('/login?expired=1');else window.setTimeout(checkExpiry,Math.min(remaining,2147480000));};checkExpiry();}
 });
