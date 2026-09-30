@@ -1,6 +1,11 @@
 # Changelog
 
-## 0.17.0 — 30/09/2026
+## 0.19.2 — 30/09/2026
+
+- Dal profilo puoi aggiornare nome e email di accesso. Dopo il cambio, la nuova email è principale e la precedente resta valida per 30 giorni per accesso e recupero password.
+- L’email dell’officina resta modificabile nelle impostazioni ed è ora indicata esplicitamente come email officina, distinta dall’email di accesso.
+
+ 0.17.0 — 30/09/2026
 
 - In alto nel Gestionale trovi il menu con il nome dell’utente, Impostazioni profilo e logout con conferma.
 - Dal profilo puoi cambiare la password, scegliere il tema Chiaro, Scuro, Alto contrasto o Monocromatico e impostare la scadenza della sessione: 1 ora, 1 giorno, 1 settimana o 1 mese.

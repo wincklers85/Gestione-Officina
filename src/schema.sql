@@ -657,6 +657,17 @@ CREATE TABLE IF NOT EXISTS feedback_reports (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS feedback_reports_status_date_idx ON feedback_reports(status,created_at DESC);
+CREATE TABLE IF NOT EXISTS user_login_aliases (
+  id BIGSERIAL PRIMARY KEY,
+  workshop_id BIGINT,
+  user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  email TEXT NOT NULL,
+  expires_at TIMESTAMPTZ NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE UNIQUE INDEX IF NOT EXISTS user_login_aliases_email_ci_idx ON user_login_aliases(lower(email));
+CREATE INDEX IF NOT EXISTS user_login_aliases_expiry_idx ON user_login_aliases(expires_at);
+CREATE INDEX IF NOT EXISTS user_login_aliases_user_idx ON user_login_aliases(user_id,expires_at DESC);
 CREATE TABLE IF NOT EXISTS password_reset_requests (
   id BIGSERIAL PRIMARY KEY,
   workshop_id BIGINT,
@@ -702,7 +713,7 @@ BEGIN
     'work_operations','operation_assignments','work_order_updates','time_entries','time_entry_adjustments','estimates','customer_action_tokens','customer_portal_tokens','estimate_customer_responses','estimate_lines',
     'inventory_items','stock_movements','inventory_reservations','suppliers','purchase_orders',
     'purchase_order_lines','invoices','invoice_lines','payments','quality_checks','road_tests',
-    'documents','document_acceptances','intake_photos','intake_print_requests','intake_acceptances','customer_screen_sessions','vehicle_reconstructions','privacy_requests','role_module_permissions','user_notifications','calendar_reminders','user_module_permissions','tablet_devices','vehicle_deliveries','warranty_cases','warranty_events','supplier_return_cases','supplier_return_events','audit_log','feedback_reports','password_reset_requests'
+    'documents','document_acceptances','intake_photos','intake_print_requests','intake_acceptances','customer_screen_sessions','vehicle_reconstructions','privacy_requests','role_module_permissions','user_notifications','calendar_reminders','user_module_permissions','tablet_devices','vehicle_deliveries','warranty_cases','warranty_events','supplier_return_cases','supplier_return_events','audit_log','feedback_reports','password_reset_requests','user_login_aliases'
   ] LOOP
     EXECUTE format('ALTER TABLE %I ADD COLUMN IF NOT EXISTS workshop_id BIGINT',t);
     EXECUTE format('UPDATE %I SET workshop_id=1 WHERE workshop_id IS NULL',t);
@@ -728,7 +739,7 @@ BEGIN
     'work_operations','operation_assignments','work_order_updates','time_entries','time_entry_adjustments','estimates','customer_action_tokens','customer_portal_tokens','estimate_customer_responses','estimate_lines',
     'inventory_items','stock_movements','inventory_reservations','suppliers','purchase_orders',
     'purchase_order_lines','invoices','invoice_lines','payments','quality_checks','road_tests',
-    'documents','document_acceptances','intake_photos','intake_print_requests','intake_acceptances','customer_screen_sessions','vehicle_reconstructions','privacy_requests','role_module_permissions','user_notifications','calendar_reminders','user_module_permissions','tablet_devices','vehicle_deliveries','warranty_cases','warranty_events','supplier_return_cases','supplier_return_events','audit_log','feedback_reports','password_reset_requests','licenses'
+    'documents','document_acceptances','intake_photos','intake_print_requests','intake_acceptances','customer_screen_sessions','vehicle_reconstructions','privacy_requests','role_module_permissions','user_notifications','calendar_reminders','user_module_permissions','tablet_devices','vehicle_deliveries','warranty_cases','warranty_events','supplier_return_cases','supplier_return_events','audit_log','feedback_reports','password_reset_requests','user_login_aliases','licenses'
   ] LOOP
     EXECUTE format('ALTER TABLE %I ENABLE ROW LEVEL SECURITY',t);
     EXECUTE format('ALTER TABLE %I FORCE ROW LEVEL SECURITY',t);
