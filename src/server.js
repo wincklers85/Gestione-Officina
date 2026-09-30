@@ -425,7 +425,6 @@ app.post('/superuser/users/:id/send-reset-link',needSuperuser,async(req,res,next
  const token=crypto.randomBytes(32).toString('base64url'),hash=crypto.createHash('sha256').update(token).digest('hex');
  await pool.query("UPDATE password_reset_requests SET status='cancelled',token_hash=NULL WHERE user_id=$1 AND status IN ('requested','link_ready')",[account.id]);
  await pool.query("INSERT INTO password_reset_requests(workshop_id,user_id,status,token_hash,expires_at,created_by) VALUES($1,$2,'link_ready',$3,now()+interval '1 hour',$4)",[workshopId,account.id,hash,req.session.platformAdmin.id]);
- await pool.query("DELETE FROM user_sessions WHERE sess->'user'->>'id'=$1",[String(account.id)]);
  await renderPasswordResetLink(req,res,account,token);
 }catch(error){next(error);}});
 app.get('/superuser/password-resets',needSuperuser,async(req,res,next)=>{try{
@@ -439,7 +438,6 @@ app.post('/superuser/password-resets/:id/link',needSuperuser,async(req,res,next)
  const token=crypto.randomBytes(32).toString('base64url'),hash=crypto.createHash('sha256').update(token).digest('hex');
  await pool.query("UPDATE password_reset_requests SET status='cancelled',token_hash=NULL WHERE user_id=$1 AND id<>$2 AND status IN ('requested','link_ready')",[account.user_id,account.id]);
  await pool.query("UPDATE password_reset_requests SET status='link_ready',token_hash=$1,expires_at=now()+interval '1 hour',created_by=$2 WHERE id=$3",[hash,req.session.platformAdmin.id,account.id]);
- await pool.query("DELETE FROM user_sessions WHERE sess->'user'->>'id'=$1",[String(account.user_id)]);
  await renderPasswordResetLink(req,res,account,token);
 }catch(error){next(error);}});
 
