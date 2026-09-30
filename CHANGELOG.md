@@ -1,3 +1,11 @@
+## 0.20.0 — 30/09/2026
+
+- Aggiunto l’occhio per mostrare o nascondere le password in login e negli altri moduli.
+- Nuova Accettazione è disponibile sempre dal menu laterale del gestionale PC.
+- Quando lasci una pagina con dati modificati, compare una conferma per salvare, uscire senza salvare o restare sulla pagina.
+- Per una nuova anagrafica sono richiesti nome e telefono; per una nuova auto è richiesta la targa.
+- I testi predefiniti di condizioni e informativa privacy sono visibili e modificabili nelle impostazioni officina. Dal tablet cliente si possono raccogliere le firme digitali; dal tablet meccanico il PDF firmato si può inviare al PC per la stampa.
+
 # Changelog
 
 ## 0.19.3 — 30/09/2026

@@ -3,6 +3,40 @@ const goRedactDebug=value=>String(value||'').replace(/[\w.+-]+@[\w.-]+\.[A-Za-z]
 window.addEventListener('error',event=>{window.__goFeedbackErrors.push({name:event.error?.name||'Error',message:goRedactDebug(event.message),source:String(event.filename||'').split('/').pop().slice(0,60),line:event.lineno||0,column:event.colno||0});if(window.__goFeedbackErrors.length>6)window.__goFeedbackErrors.shift();});
 window.addEventListener('unhandledrejection',event=>{const reason=event.reason;window.__goFeedbackErrors.push({name:reason?.name||'UnhandledRejection',message:goRedactDebug(reason?.message||reason),source:'',line:0,column:0});if(window.__goFeedbackErrors.length>6)window.__goFeedbackErrors.shift();});
 document.addEventListener('DOMContentLoaded',()=>{
+  const attachPasswordToggles=scope=>{
+    scope.querySelectorAll('input[type="password"]:not([data-password-toggle-ready])').forEach(input=>{
+      input.dataset.passwordToggleReady='true';
+      const wrap=document.createElement('span');wrap.className='password-toggle-wrap';
+      const button=document.createElement('button');button.type='button';button.className='password-toggle-button';button.setAttribute('aria-label','Mostra password');button.setAttribute('aria-pressed','false');button.title='Mostra password';
+      button.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"></path><circle cx="12" cy="12" r="3"></circle></svg>';
+      input.parentNode.insertBefore(wrap,input);wrap.append(input,button);
+      button.addEventListener('click',()=>{const show=input.type==='password';input.type=show?'text':'password';button.setAttribute('aria-label',show?'Nascondi password':'Mostra password');button.setAttribute('aria-pressed',String(show));button.title=show?'Nascondi password':'Mostra password';input.focus();});
+    });
+  };
+  attachPasswordToggles(document);
+  new MutationObserver(records=>records.forEach(record=>record.addedNodes.forEach(node=>{if(node.nodeType===1)attachPasswordToggles(node);}))).observe(document.body,{childList:true,subtree:true});
+  const dirtyForms=new Set();let lastDirtyForm=null,pendingNavigation='';
+  const markDirty=target=>{const form=target?.closest?.('form');if(!form||form.method.toLowerCase()==='get'||form.dataset.skipUnsavedGuard==='true'||form.closest('dialog')||target.matches?.('input[type="hidden"],input[type="submit"],input[type="button"],button'))return;dirtyForms.add(form);lastDirtyForm=form;};
+  document.addEventListener('input',event=>markDirty(event.target),true);document.addEventListener('change',event=>markDirty(event.target),true);
+  document.addEventListener('pointerup',event=>{if(event.target.closest?.('.signature-pad'))markDirty(event.target);},true);
+  document.addEventListener('submit',event=>{dirtyForms.delete(event.target);if(lastDirtyForm===event.target)lastDirtyForm=null;},true);
+  window.addEventListener('beforeunload',event=>{if(!dirtyForms.size)return;event.preventDefault();event.returnValue='';});
+  let unsavedDialog=null;
+  const showUnsavedDialog=()=>{
+    if(unsavedDialog)return unsavedDialog;
+    unsavedDialog=document.createElement('dialog');unsavedDialog.className='unsaved-changes-dialog';
+    unsavedDialog.innerHTML='<h2>Dati non salvati</h2><p>Hai iniziato a compilare questa pagina. Salva il modulo prima di uscire oppure continua senza salvare.</p><p class="unsaved-status" role="status" aria-live="polite"></p><div class="actions"><button type="button" class="button" data-unsaved-stay>Resta nella pagina</button><button type="button" class="button" data-unsaved-leave>Continua senza salvare</button><button type="button" class="button primary" data-unsaved-save>Salva i dati</button></div>';
+    const status=unsavedDialog.querySelector('.unsaved-status'),stay=unsavedDialog.querySelector('[data-unsaved-stay]'),leave=unsavedDialog.querySelector('[data-unsaved-leave]'),save=unsavedDialog.querySelector('[data-unsaved-save]');
+    stay.addEventListener('click',()=>{pendingNavigation='';unsavedDialog.close();});
+    leave.addEventListener('click',()=>{const target=pendingNavigation;pendingNavigation='';dirtyForms.clear();lastDirtyForm=null;unsavedDialog.close();if(target)window.location.assign(target);});
+    save.addEventListener('click',()=>{const form=lastDirtyForm||[...dirtyForms].at(-1);if(!form){leave.click();return;}if(!form.checkValidity()){const invalid=form.querySelector(':invalid'),step=invalid?.closest('[data-step-panel]');if(step?.hidden)form.dispatchEvent(new CustomEvent('go:step',{detail:{step:step.dataset.stepPanel}}));status.textContent='Completa il campo obbligatorio evidenziato prima di salvare.';setTimeout(()=>{invalid?.focus();invalid?.reportValidity?.();},0);return;}status.textContent='Salvataggio…';form.requestSubmit();});
+    unsavedDialog.addEventListener('cancel',event=>{event.preventDefault();pendingNavigation='';unsavedDialog.close();});document.body.append(unsavedDialog);return unsavedDialog;
+  };
+  document.addEventListener('click',event=>{
+    const link=event.target.closest?.('a[href]');if(!link||!dirtyForms.size||event.defaultPrevented||event.button!==0||event.metaKey||event.ctrlKey||event.shiftKey||event.altKey||link.target&&link.target!=='_self'||link.hasAttribute('download'))return;
+    let target;try{target=new URL(link.href,window.location.href);}catch{return;}if(target.origin!==window.location.origin||target.pathname===window.location.pathname&&target.search===window.location.search)return;
+    event.preventDefault();pendingNavigation=target.href;const dialog=showUnsavedDialog();if(!dialog.open)dialog.showModal();
+  },true);
   const warrantyPrompt=document.querySelector('#warranty-return-prompt');
   if(warrantyPrompt){
     const vehicle=document.querySelector('[name="vehicle_id"]');
