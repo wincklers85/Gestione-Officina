@@ -62,7 +62,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     }
     if(next==='acceptance'){
       if(!selectedVehicle&&!vehicleId.value){
-        if(!customerId.value||!root.querySelector('[name="new_plate"]').value.trim()){alert('Seleziona una vettura esistente oppure inserisci la targa della nuova auto.');return;}
+        if((!customerId.value&&!root.querySelector('[name="new_customer_name"]').value.trim())||!root.querySelector('[name="new_plate"]').value.trim()){alert('Seleziona una vettura esistente oppure inserisci la targa della nuova auto.');return;}
         if(!root.querySelector('[name="new_customer_name"]').value.trim()&&!selectedCustomer){alert('Seleziona prima il cliente.');return;}
       }
       root.querySelector('#vehicle-summary').textContent=selectedVehicle?'Auto: '+[selectedVehicle.plate,selectedVehicle.make,selectedVehicle.model].filter(Boolean).join(' · ')+' · '+selectedVehicle.repair_count+' interventi precedenti':'Nuova auto: '+[root.querySelector('[name="new_plate"]').value,root.querySelector('[name="new_make"]').value,root.querySelector('[name="new_model"]').value].filter(Boolean).join(' · ');
