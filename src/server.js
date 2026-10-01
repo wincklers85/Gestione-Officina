@@ -26,14 +26,15 @@ const softwareHouse = 'WinLabs Solutions';
 const softwareHouseUrl = 'https://winlabs.onrender.com';
 const releases = [{
   version: appVersion,
-  date: '2026-09-30',
+  date: '2026-10-01',
   title: 'Collaudo sempre accessibile e ordini numerati per officina',
   changes: [
     'La scheda Collaudo è sempre aperta sul tablet, con un collegamento diretto dall’inizio della scheda di lavoro.',
     'I nuovi ordini hanno un prefisso configurabile nelle impostazioni e una sequenza giornaliera distinta per officina; il prefisso iniziale usa le iniziali del nome.',
     'Mostra o nascondi le password con il pulsante a forma di occhio. Nuova Accettazione è sempre disponibile dal menu laterale del gestionale PC.',
     'Se provi a lasciare una pagina con modifiche, puoi salvare, continuare senza salvare o restare. Per una nuova anagrafica servono nome e telefono; per una nuova auto basta la targa oltre ai dati di accettazione.',
-    'Condizioni e informativa privacy hanno un modello iniziale modificabile. Il cliente può firmare dal tablet cliente oppure sul tablet meccanico e inviare il PDF al PC per la stampa.'
+    'Condizioni e informativa privacy hanno un modello iniziale modificabile. Il cliente può firmare dal tablet cliente oppure sul tablet meccanico e inviare il PDF al PC per la stampa.',
+    'Il registro modifiche raggruppa le versioni per data e apre, al tocco, tutti i cambiamenti di quel giorno.'
   ]
 }, {
   version: '0.13.0',
@@ -350,7 +351,22 @@ function archivePdf(pdf,req,res,next,meta){const chunks=[];pdf.on('data',chunk=>
 app.get('/api/notifications',needAuth,async(req,res,next)=>{try{const r=await pool.query(`SELECT id,notification_type,title,message,work_order_id,created_at FROM user_notifications WHERE user_id=$1 AND acknowledged_at IS NULL ORDER BY created_at LIMIT 12`,[req.session.user.id]);res.set('Cache-Control','no-store').json({notifications:r.rows});}catch(e){next(e);}});
 app.post('/notifications/:id/acknowledge',needAuth,async(req,res,next)=>{try{await pool.query(`UPDATE user_notifications SET acknowledged_at=now() WHERE id=$1 AND user_id=$2 AND acknowledged_at IS NULL`,[req.params.id,req.session.user.id]);res.json({ok:true});}catch(e){next(e);}});
 app.get('/healthz', async (_req,res) => { try { await pool.query('SELECT 1'); res.status(200).json({status:'ok'}); } catch { res.status(503).json({status:'database unavailable'}); } });
-app.get('/info',needAuth,(req,res)=>{const changelog=releases.map(release=>`<article class="release-entry"><div class="release-entry-head"><h2>Versione ${esc(release.version)} · ${esc(release.title)}</h2><time datetime="${esc(release.date)}">${new Intl.DateTimeFormat('it-IT',{dateStyle:'long',timeZone:'Europe/Rome'}).format(new Date(`${release.date}T12:00:00Z`))}</time></div><ul>${release.changes.map(change=>`<li>${esc(change)}</li>`).join('')}</ul></article>`).join('');const body=`<section class="card info-summary"><div><span class="muted">Versione installata</span><strong class="version-number">GO ${esc(appVersion)}</strong></div><div><span class="muted">Stato sistema</span><strong class="system-status info-system-status" data-status="checking"><i></i><span>Verifica stato…</span></strong></div><div><span class="muted">Software house</span><strong><a href="${esc(softwareHouseUrl)}" target="_blank" rel="noopener noreferrer">${esc(softwareHouse)}</a></strong></div></section><section class="card"><div class="section-heading"><h2>Registro modifiche</h2><span class="badge">${releases.length} version${releases.length===1?'e':'i'}</span></div>${changelog}</section><p class="muted">Lo stato online verifica la disponibilità dell’applicazione e del database. Se non riesce a contattare il controllo, viene mostrato offline.</p>`;res.send(page('Info e aggiornamenti',body,req.session.user,'info'));});
+app.get('/info',needAuth,(req,res)=>{
+  const dateFormatter=new Intl.DateTimeFormat('it-IT',{dateStyle:'long',timeZone:'Europe/Rome'});
+  const releasesByDate=new Map();
+  for(const release of releases){
+    if(!releasesByDate.has(release.date))releasesByDate.set(release.date,[]);
+    releasesByDate.get(release.date).push(release);
+  }
+  const changelog=[...releasesByDate.entries()].sort((a,b)=>b[0].localeCompare(a[0])).map(([date,dayReleases])=>{
+    const dateLabel=dateFormatter.format(new Date(date+'T12:00:00Z'));
+    const countLabel=dayReleases.length+' '+(dayReleases.length===1?'versione':'versioni');
+    const entries=dayReleases.map(release=>'<article class="release-entry"><div class="release-entry-head"><h2>Versione '+esc(release.version)+' · '+esc(release.title)+'</h2></div><ul>'+release.changes.map(change=>'<li>'+esc(change)+'</li>').join('')+'</ul></article>').join('');
+    return '<details class="release-day"><summary class="release-day-summary" aria-label="Modifiche del '+esc(dateLabel)+': '+esc(countLabel)+', tocca per aprire"><time datetime="'+esc(date)+'">'+esc(dateLabel)+'</time><span class="badge release-day-count">'+esc(countLabel)+'</span><span class="release-day-chevron" aria-hidden="true">⌄</span></summary><div class="release-day-content">'+entries+'</div></details>';
+  }).join('');
+  const body=`<section class="card info-summary"><div><span class="muted">Versione installata</span><strong class="version-number">GO ${esc(appVersion)}</strong></div><div><span class="muted">Stato sistema</span><strong class="system-status info-system-status" data-status="checking"><i></i><span>Verifica stato…</span></strong></div><div><span class="muted">Software house</span><strong><a href="${esc(softwareHouseUrl)}" target="_blank" rel="noopener noreferrer">${esc(softwareHouse)}</a></strong></div></section><section class="card"><div class="section-heading"><h2>Registro modifiche</h2><span class="badge">${releases.length} version${releases.length===1?'e':'i'}</span></div>${changelog}</section><p class="muted">Lo stato online verifica la disponibilità dell’applicazione e del database. Se non riesce a contattare il controllo, viene mostrato offline.</p>`;
+  res.send(page('Info e aggiornamenti',body,req.session.user,'info'));
+});
 app.get('/api/info',(req,res)=>res.json({version:appVersion,softwareHouse,softwareHouseUrl,releases}));
 app.get('/license-expired',(req,res)=>res.status(403).send(page('Licenza non attiva','<section class="card"><h2>Accesso officina sospeso</h2><p>La licenza dell’officina è scaduta o sospesa. Contatta il titolare della piattaforma GO.</p><form method="post" action="/logout">'+formToken(req)+'<button class="button">Esci</button></form></section>')));
 app.get('/password/change',needAuth,(req,res)=>res.send(page('Aggiorna password',`${takeFlash(req)}<section class="card"><p>Per continuare devi sostituire la password temporanea.</p><form method="post" action="/password/change">${formToken(req)}${input('Nuova password (almeno 12 caratteri)','password','password','',true)}${input('Conferma password','confirm','password','',true)}<button class="button primary">Aggiorna password</button></form></section>`,req.session.user)));
