@@ -30,9 +30,9 @@ test('schema is repeatable and protects core workshop records', async t => {
   const customer = await db.query(`INSERT INTO customers(name) VALUES('Cliente test') RETURNING id`);
   const vehicle = await db.query(`INSERT INTO vehicles(customer_id,plate,make,model) VALUES($1,'AA000AA','GO','Test') RETURNING id`, [customer.rows[0].id]);
   const order = await db.query(`INSERT INTO work_orders(customer_id,vehicle_id,created_at) VALUES($1,$2,'2026-09-25T09:00:00Z') RETURNING id,order_number`, [customer.rows[0].id,vehicle.rows[0].id]);
-  assert.equal(order.rows[0].order_number,'GG-250926/1','il prefisso iniziale viene ricavato dal nome officina e la sequenza parte da uno');
+  assert.equal(order.rows[0].order_number,'O-250926/1','il prefisso iniziale viene ricavato dal nome officina e la sequenza parte da uno');
   const sameDayOrder=await db.query(`INSERT INTO work_orders(customer_id,vehicle_id,created_at) VALUES($1,$2,'2026-09-25T09:30:00Z') RETURNING order_number`,[customer.rows[0].id,vehicle.rows[0].id]);
-  assert.equal(sameDayOrder.rows[0].order_number,'GG-250926/2','la sequenza giornaliera prosegue per la stessa officina');
+  assert.equal(sameDayOrder.rows[0].order_number,'O-250926/2','la sequenza giornaliera prosegue per la stessa officina');
   await db.exec("SELECT set_config('app.platform_admin','true',false)");
   const secondWorkshop=await db.query(`INSERT INTO workshops(name,status) VALUES('Officina Sasso','active') RETURNING id`);
   await db.query(`INSERT INTO workshop_settings(id,workshop_id,business_name,document_prefix) VALUES(1,$1,'Officina Sasso','OS')`,[secondWorkshop.rows[0].id]);
