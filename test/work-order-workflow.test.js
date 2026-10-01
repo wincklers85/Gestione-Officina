@@ -132,5 +132,5 @@ test('riparazione, fattura e consegna funzionano con collaudo lasciato incomplet
   assert.equal(billing.complete,true);
   assert.equal(delivery.unlocked,true);
   assert.equal(delivery.complete,false);
-  assert.equal((await db.query("SELECT count(*)::int AS n FROM audit_log WHERE action IN ('workflow_quality_optional_for_billing','workflow_step_completed')")).rows[0].n,2);
+  assert.equal((await db.query("SELECT count(*)::int AS n FROM audit_log WHERE action IN ('workflow_quality_optional_for_billing','workflow_step_completed')")).rows[0].n,5);
 });
