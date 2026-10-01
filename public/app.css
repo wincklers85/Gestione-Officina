@@ -74,3 +74,18 @@ body[data-theme="contrast"] .button.primary{background:#000;color:#fff;border:2p
 .unsaved-changes-dialog h2{margin:0 0 10px}
 .unsaved-changes-dialog .unsaved-status{min-height:1.4em;color:var(--muted)}
 .unsaved-changes-dialog .actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;margin-top:16px}
+
+
+/* Registro modifiche raggruppato per data */
+.release-day{border-top:1px solid var(--line)}
+.release-day:first-of-type{border-top:0}
+.release-day-summary{display:flex;align-items:center;gap:12px;padding:14px 0;cursor:pointer;list-style:none}
+.release-day-summary::-webkit-details-marker{display:none}
+.release-day-summary:focus-visible{outline:3px solid var(--orange,#f26b21);outline-offset:3px;border-radius:6px}
+.release-day-summary time{font-weight:750;color:var(--ink)}
+.release-day-count{margin-left:auto}
+.release-day-chevron{color:var(--muted);font-size:18px;transition:transform .15s ease}
+.release-day[open] .release-day-chevron{transform:rotate(180deg)}
+.release-day-content{padding:0 0 12px 12px;border-left:2px solid var(--line)}
+.release-day-content .release-entry{padding:12px 0}
+@media(max-width:600px){.release-day-summary{gap:8px}.release-day-summary time{font-size:14px}.release-day-content{padding-left:10px}}
