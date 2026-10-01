@@ -27,15 +27,140 @@ const softwareHouseUrl = 'https://winlabs.onrender.com';
 const releases = [{
   version: appVersion,
   date: '2026-10-01',
-  title: 'Collaudo sempre accessibile e ordini numerati per officina',
+  title: 'Aggiornamenti officina, profilo e accesso',
   changes: [
-    'La scheda Collaudo è sempre aperta sul tablet, con un collegamento diretto dall’inizio della scheda di lavoro.',
-    'I nuovi ordini hanno un prefisso configurabile nelle impostazioni e una sequenza giornaliera distinta per officina; il prefisso iniziale usa le iniziali del nome.',
-    'Mostra o nascondi le password con il pulsante a forma di occhio. Nuova Accettazione è sempre disponibile dal menu laterale del gestionale PC.',
-    'Se provi a lasciare una pagina con modifiche, puoi salvare, continuare senza salvare o restare. Per una nuova anagrafica servono nome e telefono; per una nuova auto basta la targa oltre ai dati di accettazione.',
-    'Condizioni e informativa privacy hanno un modello iniziale modificabile. Il cliente può firmare dal tablet cliente oppure sul tablet meccanico e inviare il PDF al PC per la stampa.',
-    'Il registro modifiche raggruppa le versioni per data e apre, al tocco, tutti i cambiamenti di quel giorno.'
+    'Il flusso di lavoro include l’accettazione guidata, il collaudo consultabile su tablet e PC, la chiusura anticipata e il passaggio alla fatturazione anche senza collaudo.',
+    'I clienti si cercano insieme alla loro storia e ai veicoli; la stessa targa può comparire con più proprietari nel tempo. I numeri ordine sono configurabili per officina e per giorno.',
+    'Sono disponibili password visibili su richiesta, protezione dalle modifiche non salvate, profilo con tema e durata sessione, recupero password e gestione temporanea del cambio email.',
+    'Il cliente può firmare i moduli di accettazione su tablet; termini e informativa hanno modelli modificabili e il PDF compatto è pronto per la stampa.',
+    'Aggiunte segnalazioni di problemi e suggerimenti con dati diagnostici, consultabili dal superadmin.',
+    'Il changelog mostra ogni versione separatamente; la nota con il conteggio giornaliero apre il dettaglio completo di quella data.'
   ]
+}, {
+  version: '0.16.1',
+  date: '2026-09-30',
+  title: 'Ricerca unificata di clienti e veicoli',
+  changes: [
+    'La ricerca collega il cliente attuale allo storico dei veicoli e agli interventi precedenti.',
+    'La targa può essere associata a clienti diversi nel tempo; la scheda conserva la cronologia dei passaggi senza cambiare il cliente del nuovo lavoro.',
+    'Nomi simili e codici fiscali corrispondenti aiutano a individuare duplicati e a valutare l’unione delle anagrafiche.'
+  ]
+}, {
+  version: '0.16.0',
+  date: '2026-09-30',
+  title: 'Accettazione guidata e anagrafiche senza duplicati',
+  changes: [
+    'La nuova accettazione da tablet è un wizard per cercare o creare prima il cliente e poi l’auto, consultando gli interventi precedenti.',
+    'Avvisi per nomi simili e codici fiscali già presenti aiutano a non creare contatti duplicati.',
+    'La fusione dei contatti richiede confronto dei dati e scelta della scheda da mantenere; i riferimenti allo storico vengono trasferiti e l’operazione è registrata.',
+    'Ridotto di 1,5 pt il testo di condizioni di riparazione e informativa privacy nel PDF di accettazione.'
+  ]
+}, {
+  version: '0.15.17',
+  date: '2026-09-30',
+  title: 'Ricerca lavori chiusi',
+  changes: ['Lavori chiusi e ritiri anticipati si trovano nell’archivio cercando numero ordine, targa, veicolo o cliente.']
+}, {
+  version: '0.15.16',
+  date: '2026-09-30',
+  title: 'Pagamenti e verifica fatturazione',
+  changes: ['Migliorata la registrazione dei pagamenti e aggiunti controlli automatici per saldo ordinario e pagamenti parziali.']
+}, {
+  version: '0.15.15',
+  date: '2026-09-30',
+  title: 'Flusso collaudo, fattura e consegna',
+  changes: ['Corretti i passaggi tra collaudo, fattura e consegna, compresi saldo e pagamenti parziali.']
+}, {
+  version: '0.15.14',
+  date: '2026-09-29',
+  title: 'Chiusura anticipata: documento e incasso',
+  changes: ['Corretti pagamento e schermata di riconsegna per i documenti creati con la chiusura anticipata.']
+}, {
+  version: '0.15.13',
+  date: '2026-09-29',
+  title: 'Collaudo senza ricaricare la pagina',
+  changes: [
+    'La scheda collaudo è disponibile su tablet e gestionale, salva gli esiti senza ricaricare la pagina e conserva le scelte tra sessioni.',
+    'Rimosso lo splash di avvio durante i salvataggi e i passaggi tra le pagine.'
+  ]
+}, {
+  version: '0.15.11',
+  date: '2026-09-29',
+  title: 'Nuova accettazione e documenti compatti',
+  changes: [
+    'Aggiunto il pulsante Nuova Accettazione nella postazione tablet, con accesso diretto alla creazione di un ordine.',
+    'Condizioni del servizio e informativa privacy sono state compattate per stare nella stessa pagina.'
+  ]
+}, {
+  version: '0.15.10',
+  date: '2026-09-29',
+  title: 'Dati cliente, galleria e rientri in garanzia',
+  changes: ['Migliorati i dati cliente, la galleria fotografica del veicolo e la gestione dei rientri in garanzia.']
+}, {
+  version: '0.15.9',
+  date: '2026-09-28',
+  title: 'Anteprima foto e flusso stampa',
+  changes: ['Aggiunta l’anteprima delle foto del veicolo e migliorato il flusso per prepararle alla stampa.']
+}, {
+  version: '0.15.8',
+  date: '2026-09-28',
+  title: 'Accettazione tablet e caricamento foto',
+  changes: ['Corretto il flusso di accettazione dal tablet e il caricamento delle foto.']
+}, {
+  version: '0.15.7',
+  date: '2026-09-28',
+  title: 'Salvataggio foto dal tablet',
+  changes: ['Corretto il salvataggio delle foto acquisite dalla postazione tablet.']
+}, {
+  version: '0.15.6',
+  date: '2026-09-28',
+  title: 'Firme e passaggi senza splash',
+  changes: ['Corretti l’avanzamento dopo le firme e la comparsa dello splash nella postazione tablet.']
+}, {
+  version: '0.15.5',
+  date: '2026-09-28',
+  title: 'Accettazione tablet a schede',
+  changes: ['Separato il flusso di accettazione tablet in passaggi guidati.']
+}, {
+  version: '0.15.4',
+  date: '2026-09-28',
+  title: 'Interfaccia tablet rinnovata',
+  changes: ['Rinnovata l’interfaccia tablet per rendere più chiaro il lavoro nelle schermate touch.']
+}, {
+  version: '0.15.3',
+  date: '2026-09-28',
+  title: 'Avvio e navigazione tablet',
+  changes: ['Corretto l’avvio e migliorata la navigazione della postazione tablet.']
+}, {
+  version: '0.15.2',
+  date: '2026-09-28',
+  title: 'Timer e schede nel tablet',
+  changes: ['Mantenuti timer e schede di lavoro nella postazione tablet durante la navigazione.']
+}, {
+  version: '0.15.1',
+  date: '2026-09-28',
+  title: 'Salvataggio e schede di lavoro',
+  changes: ['Corretto il salvataggio e migliorato l’uso delle schede di lavoro.']
+}, {
+  version: '0.15.0',
+  date: '2026-09-28',
+  title: 'Avanzamento lavori a schede',
+  changes: ['Riorganizzato l’avanzamento della lavorazione in schede di fase.']
+}, {
+  version: '0.14.2',
+  date: '2026-09-28',
+  title: 'Chiusura sicura lavori e timer',
+  changes: ['Migliorata la chiusura dei lavori e corretta la gestione dei timer attivi.']
+}, {
+  version: '0.14.1',
+  date: '2026-09-27',
+  title: 'Migrazione database ricambi',
+  changes: ['Reso aggiornabile lo schema del magazzino ricambi per le officine già registrate.']
+}, {
+  version: '0.14.0',
+  date: '2026-09-27',
+  title: 'Timer, priorità e tablet',
+  changes: ['Aggiunta la gestione degli orari di lavoro, degli avvisi timer, delle priorità e degli strumenti touch per tablet.']
 }, {
   version: '0.13.0',
   date: '2026-09-27',
@@ -358,13 +483,20 @@ app.get('/info',needAuth,(req,res)=>{
     if(!releasesByDate.has(release.date))releasesByDate.set(release.date,[]);
     releasesByDate.get(release.date).push(release);
   }
-  const changelog=[...releasesByDate.entries()].sort((a,b)=>b[0].localeCompare(a[0])).map(([date,dayReleases])=>{
-    const dateLabel=dateFormatter.format(new Date(date+'T12:00:00Z'));
-    const countLabel=dayReleases.length+' '+(dayReleases.length===1?'versione':'versioni');
-    const entries=dayReleases.map(release=>'<article class="release-entry"><div class="release-entry-head"><h2>Versione '+esc(release.version)+' · '+esc(release.title)+'</h2></div><ul>'+release.changes.map(change=>'<li>'+esc(change)+'</li>').join('')+'</ul></article>').join('');
-    return '<details class="release-day"><summary class="release-day-summary" aria-label="Modifiche del '+esc(dateLabel)+': '+esc(countLabel)+', tocca per aprire"><time datetime="'+esc(date)+'">'+esc(dateLabel)+'</time><span class="badge release-day-count">'+esc(countLabel)+'</span><span class="release-day-chevron" aria-hidden="true">⌄</span></summary><div class="release-day-content">'+entries+'</div></details>';
+  const renderedDateNotes=new Set();
+  const changelog=releases.map(release=>{
+    const dateLabel=dateFormatter.format(new Date(release.date+'T12:00:00Z'));
+    const dayReleases=releasesByDate.get(release.date)||[release];
+    const countLabel=dayReleases.length+' '+(dayReleases.length===1?'versione':'versioni')+' in questa data';
+    let dateNote='';
+    if(!renderedDateNotes.has(release.date)){
+      renderedDateNotes.add(release.date);
+      const dayEntries=dayReleases.map(dayRelease=>'<article class="release-entry"><div class="release-entry-head"><h3>Versione '+esc(dayRelease.version)+' · '+esc(dayRelease.title)+'</h3></div><ul>'+dayRelease.changes.map(change=>'<li>'+esc(change)+'</li>').join('')+'</ul></article>').join('');
+      dateNote='<details class="release-day"><summary class="release-day-summary" aria-label="Apri '+esc(countLabel)+' del '+esc(dateLabel)+'"><span class="badge release-day-count">'+esc(countLabel)+'</span><span class="release-day-chevron" aria-hidden="true">⌄</span></summary><div class="release-day-content">'+dayEntries+'</div></details>';
+    }
+    return '<article class="release-entry"><div class="release-entry-head"><h2>Versione '+esc(release.version)+' · '+esc(release.title)+'</h2><time datetime="'+esc(release.date)+'">'+esc(dateLabel)+'</time></div>'+dateNote+'<ul>'+release.changes.map(change=>'<li>'+esc(change)+'</li>').join('')+'</ul></article>';
   }).join('');
-  const body=`<section class="card info-summary"><div><span class="muted">Versione installata</span><strong class="version-number">GO ${esc(appVersion)}</strong></div><div><span class="muted">Stato sistema</span><strong class="system-status info-system-status" data-status="checking"><i></i><span>Verifica stato…</span></strong></div><div><span class="muted">Software house</span><strong><a href="${esc(softwareHouseUrl)}" target="_blank" rel="noopener noreferrer">${esc(softwareHouse)}</a></strong></div></section><section class="card"><div class="section-heading"><h2>Registro modifiche</h2><span class="badge">${releases.length} version${releases.length===1?'e':'i'}</span></div>${changelog}</section><p class="muted">Lo stato online verifica la disponibilità dell’applicazione e del database. Se non riesce a contattare il controllo, viene mostrato offline.</p>`;
+  const body=`<section class="card info-summary"><div><span class="muted">Versione installata</span><strong class="version-number">GO ${esc(appVersion)}</strong></div><div><span class="muted">Stato sistema</span><strong class="system-status info-system-status" data-status="checking"><i></i><span>Verifica stato…</span></strong></div><div><span class="muted">Software house</span><strong><a href="${esc(softwareHouseUrl)}" target="_blank" rel="noopener noreferrer">${esc(softwareHouse)}</a></strong></div></section><section class="card"><div class="section-heading"><h2>Registro modifiche</h2><span class="badge">${releases.length} versioni</span></div>${changelog}</section><p class="muted">Lo stato online verifica la disponibilità dell’applicazione e del database. Se non riesce a contattare il controllo, viene mostrato offline.</p>`;
   res.send(page('Info e aggiornamenti',body,req.session.user,'info'));
 });
 app.get('/api/info',(req,res)=>res.json({version:appVersion,softwareHouse,softwareHouseUrl,releases}));
