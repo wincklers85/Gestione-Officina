@@ -2,6 +2,7 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { PGlite } = require('@electric-sql/pglite');
 const { steps, stepState, warrantyEligible, initializeWorkflow, advanceWorkflow, unlockBillingAfterRepair, shouldAdvanceWorkflowAfterPayment } = require('../src/work-order-workflow');
+const { recordInvoicePayment } = require('../src/inventory-billing');
 
 async function setup() {
   const db = new PGlite();
@@ -97,4 +98,39 @@ test('collaudo completato e saldo aprono la consegna; la consegna non si chiude 
   assert.equal(stepState(steps.find(step => step.key === 'billing'), rows).complete, true);
   assert.equal(stepState(steps.find(step => step.key === 'delivery'), rows).unlocked, true);
   await assert.rejects(advanceWorkflow(db, 21, 'delivery', 4), /comando standard/);
+});
+
+
+test('riparazione, fattura e consegna funzionano con collaudo lasciato incompleto', async t => {
+  const db = await setup();
+  t.after(() => db.close());
+  await db.exec(`
+    CREATE TABLE work_orders(id BIGINT PRIMARY KEY,status TEXT NOT NULL);
+    CREATE TABLE invoices(id BIGINT PRIMARY KEY,work_order_id BIGINT NOT NULL,status TEXT NOT NULL);
+    CREATE TABLE invoice_lines(id BIGSERIAL PRIMARY KEY,invoice_id BIGINT NOT NULL,quantity NUMERIC NOT NULL,unit_price NUMERIC NOT NULL,vat_rate NUMERIC NOT NULL);
+    CREATE TABLE payments(id BIGSERIAL PRIMARY KEY,invoice_id BIGINT NOT NULL,amount NUMERIC NOT NULL,method TEXT NOT NULL,reference TEXT NOT NULL DEFAULT '',created_by BIGINT,paid_at TIMESTAMPTZ NOT NULL DEFAULT now());
+    INSERT INTO work_orders VALUES(30,'invoiced');
+    INSERT INTO invoices VALUES(30,30,'open');
+    INSERT INTO invoice_lines(invoice_id,quantity,unit_price,vat_rate) VALUES(30,1,100,22);
+  `);
+  await initializeWorkflow(db,30,4);
+  await advanceWorkflow(db,30,'inspection',4);
+  await advanceWorkflow(db,30,'parts',4);
+  assert.equal(await advanceWorkflow(db,30,'repair',4),'quality');
+  assert.equal(await unlockBillingAfterRepair(db,30,4),'billing');
+
+  const payment=await recordInvoicePayment(db,{invoiceId:30,amount:'122',method:'card',reference:'Saldo prova',userId:4});
+  assert.deepEqual(payment,{fullyPaid:true,workOrderId:30,status:'paid'});
+  assert.equal((await db.query('SELECT status FROM invoices WHERE id=30')).rows[0].status,'paid');
+
+  const rows=(await db.query('SELECT * FROM work_order_workflow_steps WHERE work_order_id=30')).rows;
+  const quality=stepState(steps.find(step=>step.key==='quality'),rows);
+  const billing=stepState(steps.find(step=>step.key==='billing'),rows);
+  const delivery=stepState(steps.find(step=>step.key==='delivery'),rows);
+  assert.equal(quality.unlocked,true);
+  assert.equal(quality.complete,false);
+  assert.equal(billing.complete,true);
+  assert.equal(delivery.unlocked,true);
+  assert.equal(delivery.complete,false);
+  assert.equal((await db.query("SELECT count(*)::int AS n FROM audit_log WHERE action IN ('workflow_quality_optional_for_billing','workflow_step_completed')")).rows[0].n,2);
 });
