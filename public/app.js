@@ -280,7 +280,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     const state=document.createElement('td');state.dataset.qualityState='';
     const noteCell=document.createElement('td');noteCell.dataset.qualityNote='';
     const actionCell=document.createElement('td');
-    const form=document.createElement('form');form.className='quality-check-form';form.method='post';form.action=`/quality-checks/${check.id}`;form.dataset.qualityCheck='';form.dataset.workOrderId=workOrderId;
+    const form=document.createElement('form');form.className='quality-check-form';form.method='post';form.action=`${document.body.dataset.interfaceMode==='tablet'?'/tablet':''}/quality-checks/${check.id}`;form.dataset.qualityCheck='';form.dataset.workOrderId=workOrderId;
     const token=document.createElement('input');token.type='hidden';token.name='_csrf';token.value=qualityCsrf;form.append(token);
     const orderInput=document.createElement('input');orderInput.type='hidden';orderInput.name='work_order_id';orderInput.value=workOrderId;form.append(orderInput);
     const select=document.createElement('select');select.name='passed';select.setAttribute('aria-label','Esito');
@@ -327,7 +327,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     form.addEventListener('submit',event=>{event.preventDefault();if(logoutDialog?.showModal)logoutDialog.showModal();else if(window.confirm('Vuoi uscire dal gestionale?'))form.submit();});
   });
   const expiresAt=Number(document.body?.dataset.sessionExpiresAt||0);
-  if(expiresAt){const checkExpiry=()=>{const remaining=expiresAt-Date.now();if(remaining<=0)window.location.replace('/login?expired=1');else window.setTimeout(checkExpiry,Math.min(remaining,2147480000));};checkExpiry();}
+  if(expiresAt){const checkExpiry=()=>{const remaining=expiresAt-Date.now();if(remaining<=0)window.location.replace(document.body.dataset.interfaceMode==='tablet'?'/login/tablet?expired=1':'/login?expired=1');else window.setTimeout(checkExpiry,Math.min(remaining,2147480000));};checkExpiry();}
 });
 
 
