@@ -3,6 +3,16 @@ const goRedactDebug=value=>String(value||'').replace(/[\w.+-]+@[\w.-]+\.[A-Za-z]
 window.addEventListener('error',event=>{window.__goFeedbackErrors.push({name:event.error?.name||'Error',message:goRedactDebug(event.message),source:String(event.filename||'').split('/').pop().slice(0,60),line:event.lineno||0,column:event.colno||0});if(window.__goFeedbackErrors.length>6)window.__goFeedbackErrors.shift();});
 window.addEventListener('unhandledrejection',event=>{const reason=event.reason;window.__goFeedbackErrors.push({name:reason?.name||'UnhandledRejection',message:goRedactDebug(reason?.message||reason),source:'',line:0,column:0});if(window.__goFeedbackErrors.length>6)window.__goFeedbackErrors.shift();});
 document.addEventListener('DOMContentLoaded',()=>{
+  const interfaceMode=document.body.dataset.interfaceMode;
+  if(interfaceMode){
+    const csrfToken=document.querySelector('meta[name="csrf-token"]')?.content||'';
+    const timerBox=document.querySelector('#tablet-global-timer');let serverOffset=0,activeTimer=null;
+    const paintTimer=()=>{if(!timerBox||!activeTimer)return;const elapsed=Math.max(0,Math.floor((Date.now()+serverOffset-new Date(activeTimer.started_at).getTime())/1000)-Number(activeTimer.pause_seconds||0)-(activeTimer.paused_at?Math.floor((Date.now()+serverOffset-new Date(activeTimer.paused_at).getTime())/1000):0));const hh=String(Math.floor(elapsed/3600)).padStart(2,'0'),mm=String(Math.floor(elapsed%3600/60)).padStart(2,'0'),ss=String(elapsed%60).padStart(2,'0');timerBox.hidden=false;timerBox.replaceChildren();const label=document.createElement('span');label.textContent=activeTimer.paused_at?'IN PAUSA':'TIMER ATTIVO';const link=document.createElement('a');link.href=`/tablet/work-orders/${encodeURIComponent(activeTimer.work_order_id)}?mode=view`;link.textContent=`${activeTimer.order_number||'GO-'+activeTimer.work_order_id} · ${activeTimer.plate} · ${activeTimer.title}`;const clock=document.createElement('strong');clock.textContent=`${hh}:${mm}:${ss}`;timerBox.append(label,link,clock);};
+    const heartbeat=async()=>{try{const response=await fetch('/api/presence',{headers:{Accept:'application/json'},cache:'no-store'});if(!response.ok)return;const data=await response.json();serverOffset=data.serverNow-Date.now();activeTimer=data.timer;if(timerBox){if(activeTimer)paintTimer();else timerBox.hidden=true;}}catch{}};
+    heartbeat();setInterval(heartbeat,20000);setInterval(paintTimer,1000);
+    const match=location.pathname.match(/^(?:\/tablet)?\/work-orders\/(\d+)$/);if(match){const closeOrder=()=>{const body=new URLSearchParams({_csrf:csrfToken,work_order_id:match[1]});fetch('/api/activity/close-order',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded','X-CSRF-Token':csrfToken},body,keepalive:true}).catch(()=>{});};window.addEventListener('pagehide',closeOrder,{once:true});}
+  }
+
   const attachPasswordToggles=scope=>{
     scope.querySelectorAll('input[type="password"]:not([data-password-toggle-ready])').forEach(input=>{
       input.dataset.passwordToggleReady='true';

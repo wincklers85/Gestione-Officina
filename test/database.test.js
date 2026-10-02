@@ -32,6 +32,10 @@ test('schema is repeatable and protects core workshop records', async t => {
   const order = await db.query(`INSERT INTO work_orders(customer_id,vehicle_id,created_at) VALUES($1,$2,'2026-09-25T09:00:00Z') RETURNING id,order_number`, [customer.rows[0].id,vehicle.rows[0].id]);
   assert.equal(order.rows[0].order_number,'O-250926/1','il prefisso iniziale viene ricavato dal nome officina e la sequenza parte da uno');
   const sameDayOrder=await db.query(`INSERT INTO work_orders(customer_id,vehicle_id,created_at) VALUES($1,$2,'2026-09-25T09:30:00Z') RETURNING order_number`,[customer.rows[0].id,vehicle.rows[0].id]);
+  await db.query(`INSERT INTO user_activity_events(user_id,action,work_order_id,ip_address) VALUES($1,'vehicle_opened',$2,'192.0.2.10')`,[user1.rows[0].id,order.rows[0].id]);
+  await db.query(`INSERT INTO user_presence_sessions(session_key,user_id,interface_mode,ip_address) VALUES('tablet-test-session',$1,'tablet','192.0.2.10')`,[user1.rows[0].id]);
+  const activity=await db.query(`SELECT e.action,e.ip_address,p.interface_mode FROM user_activity_events e JOIN user_presence_sessions p ON p.user_id=e.user_id WHERE e.user_id=$1`,[user1.rows[0].id]);
+  assert.deepEqual(activity.rows[0],{action:'vehicle_opened',ip_address:'192.0.2.10',interface_mode:'tablet'},'presenza e cronologia sono isolate per officina e legate al meccanico');
   assert.equal(sameDayOrder.rows[0].order_number,'O-250926/2','la sequenza giornaliera prosegue per la stessa officina');
   await db.exec("SELECT set_config('app.platform_admin','true',false)");
   const secondWorkshop=await db.query(`INSERT INTO workshops(name,status) VALUES('Officina Sasso','active') RETURNING id`);

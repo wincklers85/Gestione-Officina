@@ -621,6 +621,27 @@ CREATE TABLE IF NOT EXISTS audit_log (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+CREATE TABLE IF NOT EXISTS user_activity_events (
+  id BIGSERIAL PRIMARY KEY,
+  user_id BIGINT NOT NULL REFERENCES users(id),
+  action TEXT NOT NULL,
+  work_order_id BIGINT REFERENCES work_orders(id),
+  details JSONB NOT NULL DEFAULT '{}'::jsonb,
+  ip_address TEXT NOT NULL DEFAULT '',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS user_activity_events_user_created_idx ON user_activity_events(user_id,created_at DESC);
+CREATE INDEX IF NOT EXISTS user_activity_events_work_order_idx ON user_activity_events(work_order_id,created_at DESC);
+CREATE TABLE IF NOT EXISTS user_presence_sessions (
+  session_key TEXT PRIMARY KEY,
+  user_id BIGINT NOT NULL REFERENCES users(id),
+  interface_mode TEXT NOT NULL CHECK (interface_mode IN ('pc','tablet')),
+  ip_address TEXT NOT NULL DEFAULT '',
+  last_seen_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  signed_out_at TIMESTAMPTZ
+);
+CREATE INDEX IF NOT EXISTS user_presence_sessions_user_seen_idx ON user_presence_sessions(user_id,last_seen_at DESC);
+
 -- GO platform tenancy and control plane. Existing single-shop data is moved
 -- into the first workshop; subsequent records are scoped by PostgreSQL RLS.
 CREATE TABLE IF NOT EXISTS workshops (
@@ -719,7 +740,7 @@ BEGIN
     'work_operations','operation_assignments','work_order_updates','time_entries','time_entry_adjustments','estimates','customer_action_tokens','customer_portal_tokens','estimate_customer_responses','estimate_lines',
     'inventory_items','stock_movements','inventory_reservations','suppliers','purchase_orders',
     'purchase_order_lines','invoices','invoice_lines','payments','quality_checks','road_tests',
-    'documents','document_acceptances','intake_photos','intake_print_requests','intake_acceptances','customer_screen_sessions','vehicle_reconstructions','privacy_requests','role_module_permissions','user_notifications','calendar_reminders','user_module_permissions','tablet_devices','vehicle_deliveries','warranty_cases','warranty_events','supplier_return_cases','supplier_return_events','audit_log','feedback_reports','password_reset_requests','user_login_aliases'
+    'documents','document_acceptances','intake_photos','intake_print_requests','intake_acceptances','customer_screen_sessions','vehicle_reconstructions','privacy_requests','role_module_permissions','user_notifications','calendar_reminders','user_module_permissions','tablet_devices','vehicle_deliveries','warranty_cases','warranty_events','supplier_return_cases','supplier_return_events','audit_log','feedback_reports','password_reset_requests','user_login_aliases','user_activity_events','user_presence_sessions'
   ] LOOP
     EXECUTE format('ALTER TABLE %I ADD COLUMN IF NOT EXISTS workshop_id BIGINT',t);
     EXECUTE format('UPDATE %I SET workshop_id=1 WHERE workshop_id IS NULL',t);
@@ -801,7 +822,7 @@ BEGIN
     'work_operations','operation_assignments','work_order_updates','time_entries','time_entry_adjustments','estimates','customer_action_tokens','customer_portal_tokens','estimate_customer_responses','estimate_lines',
     'inventory_items','stock_movements','inventory_reservations','suppliers','purchase_orders',
     'purchase_order_lines','invoices','invoice_lines','payments','quality_checks','road_tests',
-    'documents','document_acceptances','intake_photos','intake_print_requests','intake_acceptances','customer_screen_sessions','vehicle_reconstructions','privacy_requests','role_module_permissions','user_notifications','calendar_reminders','user_module_permissions','tablet_devices','vehicle_deliveries','warranty_cases','warranty_events','supplier_return_cases','supplier_return_events','audit_log','feedback_reports','password_reset_requests','user_login_aliases','licenses'
+    'documents','document_acceptances','intake_photos','intake_print_requests','intake_acceptances','customer_screen_sessions','vehicle_reconstructions','privacy_requests','role_module_permissions','user_notifications','calendar_reminders','user_module_permissions','tablet_devices','vehicle_deliveries','warranty_cases','warranty_events','supplier_return_cases','supplier_return_events','audit_log','feedback_reports','password_reset_requests','user_login_aliases','user_activity_events','user_presence_sessions','licenses'
   ] LOOP
     EXECUTE format('ALTER TABLE %I ENABLE ROW LEVEL SECURITY',t);
     EXECUTE format('ALTER TABLE %I FORCE ROW LEVEL SECURITY',t);

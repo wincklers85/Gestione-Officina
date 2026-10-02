@@ -1,3 +1,12 @@
+## 0.22.0 — 02/10/2026
+
+- Separati gli accessi PC e Tablet con login dedicato ai meccanici e controlli di sessione tra le due interfacce.
+- Sul Tablet, aprendo un veicolo, il meccanico sceglie se prenderlo in carico e avviare il timer oppure consultarlo senza timer. Se il timer è su un altro veicolo, GO chiede di fermarlo prima di iniziare.
+- Aggiunto un timer sempre visibile nella postazione Tablet, con stop automatico alla chiusura dell’orario configurato dall’officina.
+- Il profilo Tablet mostra le ore lavorate sui veicoli nella settimana da lunedì a domenica.
+- Nel gestionale PC, “Utenti connessi” mostra stato, ultimo accesso, IP e ore del mese; ogni meccanico ha un riepilogo giornaliero e un calendario con aperture e chiusure veicolo, timer, note, richieste materiale e altre operazioni.
+- Registrati gli IP degli accessi e delle azioni; il riepilogo segnala più indirizzi rilevati nella stessa giornata.
+
 ## 0.21.0 — 02/10/2026
 
 - Il flusso della vettura rende più visibili le fasi, offre suggerimenti al passaggio del mouse e aggiunge pulsanti più grandi.
