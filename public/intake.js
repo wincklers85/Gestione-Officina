@@ -267,8 +267,11 @@
       try { result = await response.json(); }
       catch { throw new Error('Il server non ha restituito la conferma del salvataggio. Riprova.'); }
       if (!response.ok) { statusNode.textContent = result.error || 'Non è stato possibile salvare le firme.'; return; }
-      statusNode.textContent = 'Firme salvate. Apertura della fase successiva…';
-      window.location.assign(`/tablet/work-orders/${form.dataset.workOrder}?tab=inspection`);
+      statusNode.textContent = 'Accettazione completata. La scheda veicolo è pronta per la stampa.';
+      const actionBar = document.createElement('div'); actionBar.className = 'acceptance-complete-actions';
+      const printLink = document.createElement('a'); printLink.className = 'button primary'; printLink.href = result.vehicleSheetUrl; printLink.target = '_blank'; printLink.rel = 'noopener'; printLink.textContent = 'Apri e stampa scheda veicolo';
+      const continueLink = document.createElement('a'); continueLink.className = 'button'; continueLink.href = `/tablet/work-orders/${form.dataset.workOrder}?tab=inspection`; continueLink.textContent = 'Continua a ispezione →';
+      actionBar.append(printLink, continueLink); statusNode.after(actionBar); form.querySelectorAll('input,button,canvas').forEach(field => field.disabled = true);
     } catch (error) {
       statusNode.textContent = error.message || 'Connessione non disponibile. Verifica la rete e riprova.';
     } finally {

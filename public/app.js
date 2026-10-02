@@ -67,6 +67,29 @@ document.addEventListener('DOMContentLoaded',()=>{
     tabs.forEach(tab=>tab.addEventListener('click',()=>activate(tab.dataset.workflowTab)));
     activate(workflow.dataset.activeStep||tabs.find(item=>!item.disabled)?.dataset.workflowTab);
   }
+  const guide=document.querySelector('[data-guide]');
+  if(guide){
+    const guideSteps=[
+      {title:'1 · Accettazione',copy:'Apri Nuova Accettazione, identifica il cliente e il veicolo, annota chilometraggio, livello carburante e problema. Raccogli foto, firme e autorizzazioni.',tip:'Alla fine trovi la scheda da stampare e lasciare nel veicolo.',url:'/work-orders/new',module:'Apri Nuova Accettazione'},
+      {title:'2 · Ispezione e preventivo',copy:'Registra la diagnosi iniziale, prepara il preventivo e attendi la decisione del cliente. Le variazioni al preventivo richiedono una decisione registrata.',tip:'La fase seguente si apre quando completi l’ispezione.',url:'/work-orders',module:'Apri Ordini di lavoro'},
+      {title:'3 · Ricambi',copy:'Aggiungi e riserva i ricambi di magazzino oppure gestisci le richieste inviate dai meccanici dal tablet.',tip:'I ricambi riservati non vengono addebitati automaticamente al cliente.',url:'/inventory',module:'Apri Magazzino'},
+      {title:'4 · Riparazione',copy:'Assegna uno o più meccanici, segui lavorazioni e timer e registra note tecniche e richieste ricambi dal tablet.',tip:'Ferma tutti i timer quando le lavorazioni sono concluse.',url:'/tablet',module:'Apri Postazione tablet'},
+      {title:'5 · Collaudo',copy:'Compila la scheda di controllo e registra l’esito del test. Il collaudo è facoltativo per la fatturazione.',tip:'Un esito negativo richiede di riprendere le verifiche prima di dichiarare l’auto pronta.',url:'/work-orders',module:'Apri Ordini di lavoro'},
+      {title:'6 · Fattura e incasso',copy:'Dopo le lavorazioni e con i timer fermi, crea il documento gestionale e registra l’incasso.',tip:'L’accesso alla fatturazione segue i permessi del tuo profilo.',url:'/invoices',module:'Apri Fatture e pagamenti'},
+      {title:'7 · Consegna',copy:'Registra chi ritira il veicolo, i chilometri finali e le note. La consegna chiude il percorso della vettura.',tip:'La scheda resta consultabile nello storico dell’ordine.',url:'/work-orders',module:'Apri Ordini di lavoro'}
+    ];
+    const banner=document.querySelector('[data-help-banner]'),setting=document.querySelector('[data-guide-enabled]'),count=guide.querySelector('[data-guide-count]'),progress=guide.querySelector('[data-guide-progress]'),indexNode=guide.querySelector('[data-guide-index]'),heading=guide.querySelector('[data-guide-heading]'),copy=guide.querySelector('[data-guide-copy]'),tip=guide.querySelector('[data-guide-tip]'),moduleLink=guide.querySelector('[data-guide-module]'),prev=guide.querySelector('[data-guide-prev]'),next=guide.querySelector('[data-guide-next]');
+    const prefKey='go.workflowGuide.enabled';let enabled=localStorage.getItem(prefKey)!=='false',stepIndex=0;
+    const showStep=()=>{const step=guideSteps[stepIndex];count.textContent=`Passaggio ${stepIndex+1} di ${guideSteps.length}`;progress.style.width=`${((stepIndex+1)/guideSteps.length)*100}%`;indexNode.textContent=String(stepIndex+1).padStart(2,'0');heading.textContent=step.title;copy.textContent=step.copy;tip.textContent=step.tip;moduleLink.href=step.url;moduleLink.textContent=step.module;prev.disabled=stepIndex===0;next.textContent=stepIndex===guideSteps.length-1?'Fine':'Avanti';};
+    const setEnabled=value=>{enabled=value;localStorage.setItem(prefKey,String(value));if(banner)banner.hidden=!value;if(setting)setting.checked=value;};
+    setEnabled(enabled);showStep();
+    document.querySelectorAll('[data-open-guide]').forEach(button=>button.addEventListener('click',event=>{event.preventDefault();stepIndex=0;showStep();guide.showModal();}));
+    document.querySelectorAll('[data-guide-close]').forEach(button=>button.addEventListener('click',()=>guide.close()));
+    document.querySelector('[data-dismiss-guide]')?.addEventListener('click',()=>setEnabled(false));
+    setting?.addEventListener('change',()=>setEnabled(setting.checked));
+    prev?.addEventListener('click',()=>{if(stepIndex>0){stepIndex-=1;showStep();}});
+    next?.addEventListener('click',()=>{if(stepIndex<guideSteps.length-1){stepIndex+=1;showStep();}else guide.close();});
+  }
   const flashDialog=document.querySelector('#flash-dialog');
   if(flashDialog&&typeof flashDialog.showModal==='function'){
     flashDialog.querySelector('[data-dismiss-flash]')?.addEventListener('click',()=>flashDialog.close());

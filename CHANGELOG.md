@@ -1,3 +1,9 @@
+## 0.21.0 — 02/10/2026
+
+- Il flusso della vettura rende più visibili le fasi, offre suggerimenti al passaggio del mouse e aggiunge pulsanti più grandi.
+- Aggiunta la guida interattiva dall’accettazione alla consegna, con collegamenti ai moduli. Il banner si può nascondere o riattivare da Impostazioni officina.
+- Al termine dell’accettazione è disponibile una scheda A4 da stampare e lasciare nel veicolo: intestazione e logo officina, data di stampa, contatto cliente, ordine in evidenza, lavoro, checklist d’ispezione, sagoma per segnare i danni, livello carburante/carica e spazio note.
+
 ## 0.20.0 — 30/09/2026
 
 - Aggiunto l’occhio per mostrare o nascondere le password in login e negli altri moduli.
