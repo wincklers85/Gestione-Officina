@@ -1,3 +1,11 @@
+## 0.23.0 — 02/10/2026
+
+- La scheda veicolo Tablet usa pannelli distinti per riepilogo, lavorazioni e timer, collaudo, note tecniche, richieste ricambi e storico; i responsabili trovano anche test e riconsegna.
+- Lavorazioni, controlli e storico vengono sfogliati singolarmente con pulsanti Precedente/Successivo. I comandi principali restano visibili e i campi si conservano cambiando scheda.
+- I percorsi del collaudo Tablet riutilizzano permessi, CSRF e blocchi di fase del gestionale; gli esiti si salvano senza uscire dal Tablet.
+- Dopo timer e salvataggi si torna alla scheda interessata in consultazione, senza ripetere la domanda di presa in carico. Eliminata una registrazione duplicata di apertura veicolo.
+- La scadenza della sessione Tablet riporta al login Tablet.
+
 ## 0.22.0 — 02/10/2026
 
 - Separati gli accessi PC e Tablet con login dedicato ai meccanici e controlli di sessione tra le due interfacce.

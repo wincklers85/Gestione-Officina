@@ -250,3 +250,91 @@
 .mechanic-jobs-pager{display:flex;align-items:center;justify-content:center;gap:14px;margin:14px 0}.mechanic-jobs-pager .button{min-height:48px}.mechanic-jobs-pager .disabled{opacity:.45;pointer-events:none}.mechanic-jobs-pager>span{color:#596579;font-weight:750}@media(max-width:900px){.shell-mechanic .mechanic-jobs-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.mechanic-job-card{min-height:170px;padding:16px}.mechanic-job-card h2{font-size:22px;margin:8px 0 2px}.mechanic-job-card .tablet-task{min-height:36px;font-size:14px}.mechanic-job-card .tablet-job-foot{font-size:13px}}@media(max-width:620px){.shell-mechanic .mechanic-jobs-grid{grid-template-columns:1fr;gap:8px}.mechanic-job-card{min-height:125px;padding:13px}.mechanic-job-card h2{font-size:20px;margin:5px 0}.mechanic-job-card .tablet-task{min-height:auto;margin:5px 0;font-size:13px}.mechanic-job-card .tablet-job-foot{margin-top:6px}.mechanic-job-card .priority-badge{font-size:11px;padding:4px 7px}.mechanic-jobs-pager{gap:8px}.mechanic-jobs-pager .button{padding:8px;font-size:12px}.mechanic-jobs-pager>span{font-size:12px}}
 
 @media(min-width:901px){body:has(.tablet-global-timer:not([hidden])) .shell-mechanic{height:calc(100dvh - 48px)}body:has(.tablet-global-timer:not([hidden])) .shell-mechanic .main{height:calc(100dvh - 126px)}}
+
+/* 0.23: finite vehicle panels; retain safe overflow on unusually small screens. */
+body:has([data-tablet-workspace]){height:100dvh;min-height:0;overflow:hidden;display:flex;flex-direction:column}
+body:has([data-tablet-workspace]) .tablet-global-timer{flex:0 0 auto;position:relative;min-height:42px;padding:6px 14px}
+body:has([data-tablet-workspace]) .shell{flex:1;min-height:0;height:auto;overflow:hidden;display:flex;flex-direction:column}
+body:has([data-tablet-workspace]) .sidebar{display:none}
+body:has([data-tablet-workspace]) .mechanic-appbar{flex:0 0 auto;min-height:58px;padding:5px 16px;position:relative}
+body:has([data-tablet-workspace]) .mechanic-brand img{width:80px;max-height:44px}
+body:has([data-tablet-workspace]) .mechanic-appbar .button{min-height:44px;padding:8px 12px}
+body:has([data-tablet-workspace]) .main{flex:1;display:flex;flex-direction:column;min-height:0;height:auto!important;padding:8px 16px calc(8px + env(safe-area-inset-bottom));overflow:hidden;max-width:1600px}
+body:has([data-tablet-workspace]) .topbar{display:none}
+body:has([data-tablet-workspace]) .tablet-app-tabs{flex:0 0 auto;position:static;margin:0 0 6px;padding:0;gap:8px}
+body:has([data-tablet-workspace]) .tablet-app-tab{min-height:38px;padding:6px 12px;font-size:13px}
+body:has([data-tablet-workspace]) .tablet-app-tab img{width:22px;height:22px}
+.tablet-vehicle-bar{display:flex;align-items:center;gap:10px;flex:0 0 auto;background:white;border:1px solid var(--line);border-radius:12px;padding:8px 12px;margin-bottom:8px}
+.tablet-vehicle-bar>div{flex:1;min-width:0;display:grid;gap:3px}
+.tablet-vehicle-bar strong{font-size:22px;letter-spacing:.03em}
+.tablet-vehicle-bar span{font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tablet-vehicle-bar .button{min-height:44px;padding:8px 12px;font-size:13px}
+.tablet-workspace{display:flex;flex-direction:column;flex:1;min-height:0;gap:8px}
+.tablet-work-tabs{display:flex;flex-wrap:wrap;gap:6px;flex:0 0 auto}
+.tablet-work-tabs .button{min-height:46px;flex:1 0 auto;padding:8px 12px;font-size:14px}
+.tablet-work-tabs [aria-selected=true]{color:#963606;background:#fff0e6;border:2px solid #ef6b22;font-weight:800}
+.tablet-work-stage{flex:1;min-height:0;position:relative}
+.tablet-work-panel{height:100%;min-height:0;overflow:auto;overscroll-behavior:contain;display:flex;flex-direction:column;gap:8px}
+.tablet-work-panel[hidden],.tablet-workspace [hidden]{display:none!important}
+.shell .tablet-work-panel>.card{margin:0;padding:14px 18px;flex:1;min-height:0;box-shadow:none}
+.tablet-work-panel h2{font-size:20px;margin:0 0 10px}
+.tablet-work-panel .tablet-work-card,.tablet-work-panel .tablet-quality-sheet{display:flex;flex-direction:column}
+.tablet-work-panel [data-tablet-items]{flex:1;min-height:0}
+.tablet-work-panel .tablet-operation{padding:10px 0;gap:18px;grid-template-columns:minmax(180px,1fr) minmax(220px,360px)}
+.tablet-work-panel .tablet-operation h3{font-size:23px;margin:10px 0 8px}
+.tablet-work-panel .tablet-operation p{font-size:15px;line-height:1.4}
+.tablet-work-panel .mechanic-timer{padding:10px;gap:5px}
+.tablet-work-panel .mechanic-clock{font-size:34px}
+.tablet-work-panel .touch-button,.tablet-work-panel input,.tablet-work-panel select{min-height:46px;font-size:15px}
+.tablet-work-panel textarea{min-height:100px;max-height:150px;font-size:16px;resize:vertical}
+.tablet-item-pager{display:flex;justify-content:center;align-items:center;gap:16px;flex:0 0 auto;margin-top:8px;border-top:1px solid var(--line);padding-top:8px}
+.tablet-item-pager .button{min-height:46px;font-size:14px}.tablet-item-pager span{font-size:14px;font-weight:750}
+.tablet-work-panel .tablet-quality-sheet table{min-width:0;width:100%}
+.tablet-work-panel .tablet-quality-sheet thead{display:none}
+.tablet-work-panel .tablet-quality-sheet tr{display:grid;gap:8px}
+.tablet-work-panel .tablet-quality-sheet td{border:0;padding:0;font-size:16px;white-space:normal}
+.tablet-work-panel .tablet-quality-sheet td:first-child{font-size:22px;font-weight:750}
+.tablet-work-panel .tablet-quality-sheet td:nth-child(3){display:none}
+.tablet-work-panel .quality-check-form{grid-template-columns:1fr 1fr auto;gap:10px}
+.tablet-work-panel .quality-save-status{grid-column:1/-1;grid-row:2}
+.tablet-work-panel .tablet-quality-sheet>.section-heading{margin-bottom:6px}
+.tablet-work-panel .tablet-quality-sheet>p{margin:0 0 6px;font-size:13px}
+.tablet-work-panel .tablet-quality-sheet>form{margin:4px 0 10px}
+.tablet-work-panel .tablet-road-test-form{margin:0;padding:0;border:0;background:none}
+.tablet-work-panel .tablet-entry-form form{max-width:850px;margin:0 auto;display:grid;gap:10px}
+.tablet-work-panel .tablet-entry-form label{margin:0}
+.tablet-work-panel .tablet-progress-card{margin:0;padding:14px;flex:0 0 auto}
+.tablet-work-panel .tablet-stepper{margin:6px 0;gap:6px;grid-template-columns:repeat(5,minmax(0,1fr))}
+.tablet-work-panel .tablet-stepper li{padding:5px;font-size:12px}
+.tablet-work-panel .tablet-step-dot{width:24px;height:24px;font-size:12px}
+.tablet-work-panel .tablet-progress-heading h2{font-size:20px}
+.tablet-work-panel .tablet-progress-track{margin:7px 0}
+.tablet-work-panel .tablet-update{margin:0;flex-direction:column;padding:10px}
+.tablet-long-copy{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.tablet-copy-dialog{width:min(680px,90vw);max-height:80dvh;padding:22px;border:1px solid var(--line);border-radius:14px;overflow:auto}.tablet-copy-dialog p{white-space:pre-wrap;font-size:17px;line-height:1.5}.tablet-copy-dialog::backdrop{background:#15223588}
+@media(max-width:700px){
+ body:has([data-tablet-workspace]) .main{padding:6px 8px}
+ body:has([data-tablet-workspace]) .mechanic-appbar{gap:6px;padding:4px 8px}
+ body:has([data-tablet-workspace]) .mechanic-online{display:none}
+ .tablet-vehicle-bar{flex-wrap:wrap;gap:6px;padding:6px 8px}
+ .tablet-vehicle-bar>div{flex-basis:70%}.tablet-vehicle-bar .badge{margin-left:auto}
+ .tablet-vehicle-bar .button{flex:1}
+ .tablet-work-tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px}
+ .tablet-work-tabs .button{min-height:44px;padding:6px 3px;font-size:12px}
+ .tablet-work-panel .tablet-operation{grid-template-columns:1fr;gap:6px;padding:4px 0}
+ .tablet-work-panel .tablet-operation h3{font-size:19px;margin:5px 0}
+ .tablet-work-panel .tablet-operation-info p{margin-bottom:3px;font-size:13px}
+ .tablet-work-panel .tablet-operation-controls{display:flex;gap:6px;flex-direction:row;flex-wrap:wrap}
+ .tablet-work-panel .tablet-operation-controls form{flex:1;min-width:0}
+ .tablet-work-panel .tablet-operation-controls .tablet-pause-form{flex-basis:100%}
+ .tablet-work-panel .tablet-operation-controls .mechanic-timer{flex-basis:100%;display:flex;align-items:center;flex-wrap:wrap;gap:8px}
+ .tablet-work-panel .mechanic-clock{font-size:28px;margin-left:auto}
+ .tablet-work-panel .mechanic-timer form{flex-basis:100%}
+ .tablet-work-panel .quality-check-form{grid-template-columns:1fr auto}
+ .tablet-work-panel .quality-check-form input{grid-column:1/-1;grid-row:2}
+ .tablet-work-panel .quality-save-status{grid-row:3}
+ .tablet-work-panel .tablet-quality-sheet td:first-child{font-size:20px}
+ .tablet-work-panel .tablet-stepper{grid-template-columns:repeat(3,minmax(0,1fr))}
+ .tablet-work-panel .card{padding:10px!important}
+ .tablet-work-panel .tablet-road-test-form .form-grid{grid-template-columns:1fr}
+}
