@@ -64,6 +64,13 @@ test('schema is repeatable and protects core workshop records', async t => {
   assert.equal(sequence.complete,true,'gli otto punti esterni abilitano la sequenza foto');
   assert.equal(sequence.photos.length,8,'interni e cruscotto restano fuori dalla sequenza');
   const operation = await db.query(`INSERT INTO work_operations(work_order_id,title) VALUES($1,'Prova timer') RETURNING id`, [order.rows[0].id]);
+  const visibleJobs=await db.query(`SELECT w.id,bool_or(a.user_id=$1) AS assigned_to_me FROM work_orders w LEFT JOIN work_operations o ON o.work_order_id=w.id LEFT JOIN operation_assignments a ON a.operation_id=o.id WHERE w.id=$2 AND w.status NOT IN ('closed','cancelled') GROUP BY w.id`,[user1.rows[0].id,order.rows[0].id]);
+  assert.equal(Number(visibleJobs.rowCount),1,'il filtro Tablet del meccanico mostra anche ordini aperti senza assegnazioni');
+  assert.equal(visibleJobs.rows[0].assigned_to_me,null,'l’ordine libero resta distinguibile da uno già preso in carico');
+  const availableOperation=await db.query(`SELECT o.id FROM work_operations o LEFT JOIN operation_assignments mine ON mine.operation_id=o.id AND mine.user_id=$2 WHERE o.work_order_id=$1 AND o.status<>'completed' AND (mine.user_id IS NOT NULL OR NOT EXISTS(SELECT 1 FROM operation_assignments taken WHERE taken.operation_id=o.id))`,[order.rows[0].id,user1.rows[0].id]);
+  assert.equal(Number(availableOperation.rowCount),1,'il tablet propone al meccanico una lavorazione libera');
+  await db.query(`INSERT INTO operation_assignments(operation_id,user_id,is_lead) VALUES($1,$2,true)`,[operation.rows[0].id,user1.rows[0].id]);
+  assert.equal(Number((await db.query('SELECT count(*)::int AS n FROM operation_assignments WHERE operation_id=$1 AND user_id=$2',[operation.rows[0].id,user1.rows[0].id])).rows[0].n),1,'il meccanico può prendere in carico la lavorazione libera');
   const note=await db.query(`INSERT INTO work_order_updates(work_order_id,operation_id,update_type,description,created_by) VALUES($1,$2,'note','Diagnosi completata; nessuna perdita',$3) RETURNING id`,[order.rows[0].id,operation.rows[0].id,user1.rows[0].id]);
   const request=await db.query(`INSERT INTO work_order_updates(work_order_id,operation_id,update_type,description,quantity,request_status,created_by) VALUES($1,$2,'parts_request','Pastiglie freno anteriori',1,'open',$3) RETURNING id`,[order.rows[0].id,operation.rows[0].id,user1.rows[0].id]);
   assert.equal((await db.query(`SELECT count(*)::int AS count FROM work_order_updates WHERE work_order_id=$1`,[order.rows[0].id])).rows[0].count,2,'note e richieste ricambi restano persistenti sul relativo ordine');

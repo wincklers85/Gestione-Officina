@@ -23,6 +23,12 @@
 
 # Changelog
 
+## 0.22.1 — 02/10/2026
+
+- La postazione Tablet mostra al meccanico tutti i lavori aperti in officina, anche se non assegnati in precedenza.
+- Le lavorazioni libere possono essere prese in carico dal Tablet; un lavoro già assegnato resta riservato al meccanico assegnatario.
+- Aggiunta la registrazione dell’evento di presa in carico nel riepilogo attività.
+
 ## 0.19.3 — 30/09/2026
 
 - Dal profilo puoi aggiornare nome e email di accesso. Dopo il cambio, la nuova email è principale e la precedente resta valida per 30 giorni per accesso e recupero password.
