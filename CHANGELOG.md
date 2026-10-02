@@ -23,6 +23,12 @@
 
 # Changelog
 
+## 0.22.2 — 02/10/2026
+
+- Il secondo meccanico può subentrare fermando il timer della lavorazione oppure unirsi con un timer personale; le ore dei due meccanici restano distinte.
+- Il logout del meccanico ferma automaticamente ogni timer attivo e registra la chiusura nello storico.
+- Preparati i PIN personali dei meccanici e l’opzione in Impostazioni per abilitare in futuro il login tramite PIN nell’app Android.
+
 ## 0.22.1 — 02/10/2026
 
 - La postazione Tablet mostra al meccanico tutti i lavori aperti in officina, anche se non assegnati in precedenza.

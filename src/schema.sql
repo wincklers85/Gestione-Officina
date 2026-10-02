@@ -3,6 +3,7 @@ CREATE TABLE IF NOT EXISTS users (
   name TEXT NOT NULL,
   email TEXT NOT NULL UNIQUE,
   password_hash TEXT NOT NULL,
+  tablet_pin_hash TEXT,
   role TEXT NOT NULL DEFAULT 'mechanic',
   internal_hourly_cost NUMERIC(10,2) NOT NULL DEFAULT 0,
   active BOOLEAN NOT NULL DEFAULT TRUE,
@@ -10,6 +11,7 @@ CREATE TABLE IF NOT EXISTS users (
 );
 ALTER TABLE users ADD COLUMN IF NOT EXISTS ui_theme TEXT NOT NULL DEFAULT 'light';
 ALTER TABLE users ADD COLUMN IF NOT EXISTS session_duration TEXT NOT NULL DEFAULT 'week';
+ALTER TABLE users ADD COLUMN IF NOT EXISTS tablet_pin_hash TEXT;
 CREATE TABLE IF NOT EXISTS workshop_settings (
   id INTEGER PRIMARY KEY DEFAULT 1 CHECK (id = 1),
   business_name TEXT NOT NULL DEFAULT 'GO Gestione Officina',
@@ -28,11 +30,13 @@ CREATE TABLE IF NOT EXISTS workshop_settings (
   warranty_days INTEGER NOT NULL DEFAULT 365 CHECK (warranty_days BETWEEN 0 AND 3650),
   opening_time TIME NOT NULL DEFAULT '08:00',
   closing_time TIME NOT NULL DEFAULT '18:00',
+  tablet_pin_login_enabled BOOLEAN NOT NULL DEFAULT FALSE,
   working_days SMALLINT[] NOT NULL DEFAULT ARRAY[1,2,3,4,5]::smallint[],
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 ALTER TABLE workshop_settings ADD COLUMN IF NOT EXISTS repair_terms TEXT NOT NULL DEFAULT '';
 ALTER TABLE workshop_settings ADD COLUMN IF NOT EXISTS privacy_notice TEXT NOT NULL DEFAULT '';
+ALTER TABLE workshop_settings ADD COLUMN IF NOT EXISTS tablet_pin_login_enabled BOOLEAN NOT NULL DEFAULT FALSE;
 ALTER TABLE workshop_settings ADD COLUMN IF NOT EXISTS document_prefix TEXT NOT NULL DEFAULT 'O';
 ALTER TABLE workshop_settings ADD COLUMN IF NOT EXISTS warranty_days INTEGER NOT NULL DEFAULT 365;
 ALTER TABLE workshop_settings ADD COLUMN IF NOT EXISTS logo_data BYTEA;
