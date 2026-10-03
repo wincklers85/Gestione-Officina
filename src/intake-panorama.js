@@ -37,6 +37,8 @@ function registerPanoramaRoutes(app,{pool,needAuth,allow,multer}) {
     const c=await pool.connect();
     try{
       await c.query('BEGIN');
+      // Lock the parent before photo references, as acceptance/photo updates do.
+      await c.query('SELECT id FROM work_orders WHERE id=$1 FOR KEY SHARE',[req.params.id]);
       const originals=await c.query("SELECT id,station FROM intake_photos WHERE work_order_id=$1 AND category='exterior' AND id=ANY($2::bigint[]) FOR SHARE",[req.params.id,metadata.sourcePhotoIds]);
       if(originals.rowCount!==metadata.sourcePhotoIds.length||!EXTERIOR_STATIONS.every(station=>originals.rows.some(p=>p.station===station))){await c.query('ROLLBACK');return res.status(409).json({error:'Le foto originali sono cambiate. Riapri la vista e ricrea la cucitura.'});}
       const saved=await c.query("INSERT INTO documents(work_order_id,document_type,file_name,mime_type,file_data,created_by) VALUES($1,'vehicle_panorama',$2,'image/jpeg',$3,$4) RETURNING id",[req.params.id,`GO-${req.params.id}-cilindro.jpg`,file.buffer,req.session.user.id]);
