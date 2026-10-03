@@ -1,0 +1,44 @@
+const {test}=require('node:test');
+const assert=require('node:assert/strict');
+const {createIntakeApp}=require('./fixtures/intake-app.cjs');
+const {EXTERIOR_STATIONS}=require('../src/photo-sequence');
+const {normalizedDamage}=require('../src/vehicle-diagram');
+test('accettazione, foto e cilindro mantengono permessi, riferimenti e blocchi reali',async t=>{
+  const f=await createIntakeApp(),server=f.app.listen(0,'127.0.0.1');
+  await new Promise(resolve=>server.once('listening',resolve));
+  t.after(async()=>{await new Promise(resolve=>server.close(resolve));await f.db.close();});
+  const base=`http://127.0.0.1:${server.address().port}`,url=`/tablet/work-orders/${f.order}`;
+  const send=(route,body,headers={})=>fetch(base+route,{method:'POST',headers:{'X-CSRF-Token':'test-token',...headers},body,redirect:'manual'});
+  const jpeg=new Blob([Buffer.from([255,216,255,224,0,16,74,70,73,70])],{type:'image/jpeg'});
+  const photo=station=>{const body=new FormData();body.set('photo',jpeg,'fixture.jpg');body.set('category','exterior');body.set('station',station);body.set('damage_marks',JSON.stringify([{x:.45,y:.12,view:'right',map_version:2}]));return body;};
+  assert.equal((await send(url+'/photos',photo('front'),{'X-CSRF-Token':'wrong'})).status,403);
+  assert.equal((await send(url+'/photos',photo('front'),{'X-Role':'mechanic'})).status,404);
+  const sourceIds=[];let documentId;
+  for(const station of EXTERIOR_STATIONS){const response=await send(url+'/photos',photo(station));assert.equal(response.status,200);const p=await response.json();sourceIds.push(Number(p.id));documentId=p.documentId;assert.equal(p.damageMarks[0].view,'right');}
+  const markup=await (await fetch(base+url+'/acceptance')).text();assert.match(markup,/data-damage-view="rear"/);assert.match(markup,/data-sign-step="3"/);assert.match(markup,/data-map-version="2"/);
+  assert.equal((await fetch(base+url+'/documents/'+documentId,{headers:{'X-Role':'mechanic'}})).status,404);
+  assert.equal((await fetch(base+url+'/panorama',{headers:{'X-Role':'accountant'}})).status,403);
+  const pair={dx:276,dy:0,adjustedDy:0,status:'insufficient',matches:0,inliers:0,error:null,seam:Array(288).fill(320)};
+  const metadata={version:1,sourcePhotoIds:sourceIds,width:2208,height:288,top:0,closureDrift:0,gapPixels:0,starts:Array.from({length:8},(_,i)=>i*276),offsets:Array(8).fill(0),pairs:Array.from({length:8},()=>({...pair}))};
+  const panorama=meta=>{const body=new FormData();body.set('panorama',jpeg,'cylinder.jpg');body.set('metadata',JSON.stringify(meta));return body;};
+  const invalid=await send(url+'/panorama',panorama({...metadata,sourcePhotoIds:[...sourceIds.slice(0,7),99999]}));assert.equal(invalid.status,409);
+  assert.equal((await f.pool.query("SELECT id FROM documents WHERE document_type LIKE 'vehicle_panorama%'")).rowCount,0,'non restano documenti parziali');
+  assert.equal((await send(url+'/panorama',panorama(metadata))).status,200);
+  const saved=await (await fetch(base+url+'/panorama')).json();assert.ok(saved.url.startsWith(url+'/documents/'));assert.deepEqual(saved.metadata.sourcePhotoIds,sourceIds);assert.equal(saved.metadata.automatic,false);
+  assert.equal((await f.pool.query('SELECT id FROM intake_photos')).rowCount,8,'le foto originali restano intatte');
+  const sheet=await fetch(base+url+'/vehicle-sheet');assert.equal(sheet.status,200);assert.match(await sheet.text(),/Veicolo a cinque viste/);
+  const signature='data:image/png;base64,'+Buffer.concat([Buffer.from([137,80,78,71,13,10,26,10]),Buffer.alloc(200)]).toString('base64');
+  const signed=new URLSearchParams({signed_name:'Cliente prova',terms_accepted:'true',privacy_acknowledged:'true',terms_signature:signature,privacy_signature:signature,road_test_authorized:'true'});
+  const acceptance=await send(url+'/acceptance',signed,{'Content-Type':'application/x-www-form-urlencoded'});assert.equal(acceptance.status,200);assert.equal((await acceptance.json()).vehicleSheetUrl,url+'/vehicle-sheet');
+  const states=(await f.pool.query('SELECT step_key,is_unlocked FROM work_order_workflow_steps WHERE work_order_id=$1',[f.order])).rows;
+  assert.equal(states.find(s=>s.step_key==='intake').is_unlocked,false);assert.equal(states.find(s=>s.step_key==='inspection').is_unlocked,true);
+  assert.equal((await send(url+'/photos',photo('front'))).status,423,'le foto non possono cambiare dopo il completamento');
+  assert.equal((await send(url+'/acceptance',signed,{'Content-Type':'application/x-www-form-urlencoded'})).status,423,'un doppio invio non duplica le firme');
+  assert.equal((await send(url+'/panorama',panorama(metadata))).status,200,'la vista derivata può essere archiviata senza modificare l’accettazione');
+  assert.equal((await f.pool.query('SELECT id FROM intake_acceptances')).rowCount,1);
+});
+test('i segni precedenti rimangono leggibili nella nuova sagoma',()=>{
+  const legacy=normalizedDamage({x:.2,y:.3});assert.equal(legacy.map_version,2);assert.equal(legacy.view,'top');assert.ok(legacy.x>0&&legacy.x<1&&legacy.y>0&&legacy.y<1);
+  assert.equal(normalizedDamage({x:-1,y:.3}),null);
+  assert.deepEqual(normalizedDamage({x:.2,y:.3,view:'left',map_version:2}),{x:.2,y:.3,view:'left',map_version:2});
+});

@@ -38,7 +38,7 @@
           const response = await fetch(`/tablet/work-orders/${photoGrid.dataset.order}/photos/${item.dataset.photoId}/delete`, {method:'POST',headers:{'X-CSRF-Token':photoGrid.dataset.csrf}});
           const result = await response.json().catch(()=>({}));
           if (!response.ok) throw new Error(result.error || 'Eliminazione non riuscita.');
-          confirmDialog.close(); confirmDialog.remove(); item.remove();
+          confirmDialog.close(); confirmDialog.remove(); item.remove();qa(`[data-saved-photo="${item.dataset.photoId}"]`).forEach(dot=>dot.remove());document.dispatchEvent(new Event('go:photos-changed'));
           const count = photoItems().length, print = q('#open-photo-print'); if (print) print.disabled = !count;
           if (viewer.open) { if (count) showPhoto(Math.min(previewIndex,count-1)); else viewer.close(); }
         } catch(error) { window.alert(error.message); button.disabled = false; }
@@ -83,16 +83,15 @@
     ctx.strokeStyle = '#202a39';
   };
   const resizeSignaturePad = canvas => {
-    const before = canvas.dataset.signed ? canvas.toDataURL() : '';
+    if (!canvas.getClientRects().length || canvas.clientWidth < 1 || canvas.clientHeight < 1) return;
+    const rect=canvas.getBoundingClientRect(),ratio=Math.max(devicePixelRatio||1,1);if(canvas.width===Math.round(rect.width*ratio)&&canvas.height===Math.round(rect.height*ratio))return;
+    const backup=document.createElement('canvas');backup.width=canvas.width;backup.height=canvas.height;
+    if(canvas.dataset.signed)backup.getContext('2d').drawImage(canvas,0,0);
     resizePad(canvas);
-    if (before) {
-      const image = new Image();
-      image.onload = () => canvas.getContext('2d').drawImage(image, 0, 0, canvas.clientWidth, canvas.clientHeight);
-      image.src = before;
-    }
+    if(canvas.dataset.signed)canvas.getContext('2d').drawImage(backup,0,0,rect.width,rect.height);
   };
   qa('.signature-pad').forEach(canvas => {
-    resizePad(canvas);
+    if(canvas.getClientRects().length)resizePad(canvas);
     let drawing = false;
     const point = ev => {
       const rect = canvas.getBoundingClientRect();
@@ -114,18 +113,19 @@
     canvas.addEventListener('pointerup', end); canvas.addEventListener('pointercancel', end);
     canvas.addEventListener('pointerleave', end);
   });
-  qa('.clear-signature').forEach(button => button.addEventListener('click', () => {
-    const canvas = button.parentElement.querySelector('.signature-pad');
-    if (!canvas) return;
-    canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
-    delete canvas.dataset.signed;
-  }));
+  qa('.clear-signature').forEach(button => {
+    const canvas=button.parentElement.querySelector('.signature-pad');
+    // A button inside a label is its associated control: drawing can activate it.
+    if(button.parentElement.tagName==='LABEL')button.parentElement.after(button);
+    button.addEventListener('click',()=>{if(!canvas)return;canvas.getContext('2d').clearRect(0,0,canvas.width,canvas.height);delete canvas.dataset.signed;});
+  });
   window.addEventListener('resize', () => qa('.signature-pad').forEach(canvas => {
     if (canvas.getClientRects().length) resizeSignaturePad(canvas);
   }));
 
   const setStation = station => {
     selectedStation = station;
+    const category=q('#photo-category');if(category && !station.startsWith('interior') && station!=='dashboard' && category.value!=='exterior'){category.value='exterior';category.dispatchEvent(new Event('change'));}
     const stationInput = q('#photo-station');
     if (stationInput) stationInput.value = station;
     qa('.photo-station').forEach(el => el.classList.toggle('selected', el.dataset.station === station));
@@ -137,22 +137,21 @@
   });
   qa('[data-select-station]').forEach(el => el.addEventListener('click', () => setStation(el.dataset.selectStation)));
   const map = q('#vehicle-map');
+  const renderNewMarks=()=>{
+    const layer=q('#damage-layer');if(!layer)return;layer.replaceChildren();
+    marks.forEach(mark=>{const dot=document.createElementNS('http://www.w3.org/2000/svg','circle');dot.setAttribute('cx',mark.x*1200);dot.setAttribute('cy',mark.y*820);dot.setAttribute('r',9);dot.setAttribute('class','damage-mark');layer.append(dot);});
+    const count=q('[data-damage-count]');if(count)count.textContent=`${marks.length} segni nuovi`;
+  };
+  q('[data-undo-damage]')?.addEventListener('click',()=>{marks.pop();renderNewMarks();});
+  q('[data-clear-damage]')?.addEventListener('click',()=>{marks=[];renderNewMarks();});
   map?.addEventListener('click', ev => {
-    if (ev.target.closest('.photo-station')) return;
-    const rect = map.getBoundingClientRect();
-    const x = Math.max(0, Math.min(1, (ev.clientX - rect.left) / rect.width));
-    const y = Math.max(0, Math.min(1, (ev.clientY - rect.top) / rect.height));
-    marks.push({ x, y });
-    const markLayer = q('#damage-layer');
-    const svgRect = map.viewBox.baseVal;
-    const cx = x * svgRect.width, cy = y * svgRect.height;
-    const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-    dot.setAttribute('cx', cx); dot.setAttribute('cy', cy); dot.setAttribute('r', '11'); dot.setAttribute('class', 'damage-mark');
-    markLayer.append(dot);
-    setStation('front');
-    q('#camera-status').textContent = 'Danno segnato. Scatta una foto per allegare la prova fotografica.';
+    if(photoGrid?.dataset.editable!=='true'||ev.target.closest('.photo-station')||!ev.target.closest('.damage-surface')||marks.length>=20)return;
+    const matrix=map.getScreenCTM();if(!matrix)return;const point=new DOMPoint(ev.clientX,ev.clientY).matrixTransform(matrix.inverse()),view=ev.target.closest('[data-damage-view]').dataset.damageView;
+    marks.push({x:Math.max(0,Math.min(1,point.x/1200)),y:Math.max(0,Math.min(1,point.y/820)),view,map_version:2});renderNewMarks();
+    const category=q('#photo-category');if(category.value!=='exterior'){category.value='exterior';category.dispatchEvent(new Event('change'));}
+    setStation(view==='top'?(point.x<450?'front':point.x>800?'rear':point.y<410?'right':'left'):view);
+    q('#camera-status').textContent='Danno segnato sulla vista selezionata. Scatta una foto per conservarlo.';
   });
-
   q('#photo-category')?.addEventListener('change', ev => {
     const category = ev.target.value;
     const select = q('#photo-station');
@@ -163,10 +162,11 @@
 
   const status = q('#camera-status');
   const startCamera = async () => {
+    if(photoGrid&&photoGrid.dataset.editable!=='true')return;
     if (!navigator.mediaDevices?.getUserMedia) { if (status) status.textContent = 'Fotocamera non disponibile in questo browser. Usa Scegli foto.'; return; }
     try {
-      stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false });
-      video.srcObject = stream; q('#camera-placeholder')?.classList.add('hidden');
+      const acquired = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false });
+      if(q('#tablet-intake-photos')?.hidden||document.hidden){acquired.getTracks().forEach(track=>track.stop());return;}stream=acquired;video.srcObject = stream; q('#camera-placeholder')?.classList.add('hidden');
       if (status) status.textContent = 'Fotocamera attiva. Inquadra la zona selezionata e scatta.';
     } catch {
       if (status) status.textContent = 'Permesso fotocamera non concesso o dispositivo non disponibile. Usa Scegli foto.';
@@ -174,58 +174,32 @@
   };
   if (video && !q('#tablet-intake-photos')?.hidden) startCamera();
 
-  const intakeTabs = qa('[data-intake-tab]');
-  const intakePanels = qa('.tablet-intake-panel');
-  const showIntakePanel = key => {
-    intakeTabs.forEach(tab => {
-      const selected = tab.dataset.intakeTab === key;
-      tab.setAttribute('aria-selected', String(selected));
-      tab.classList.toggle('is-active', selected);
-      tab.tabIndex = selected ? 0 : -1;
-    });
-    intakePanels.forEach(panel => { panel.hidden = panel.id !== `tablet-intake-${key}`; });
-    if (key === 'signature') {
-      qa('.signature-pad').forEach(resizeSignaturePad);
-      stream?.getTracks().forEach(track => track.stop());
-      stream = undefined;
-      if (video) video.srcObject = null;
-    } else if (video && !stream) startCamera();
-    q('.tablet-intake-tabs')?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-  };
-  intakeTabs.forEach(tab => {
-    tab.tabIndex = tab.getAttribute('aria-selected') === 'true' ? 0 : -1;
-    tab.addEventListener('click', () => showIntakePanel(tab.dataset.intakeTab));
-    tab.addEventListener('keydown', event => {
-      if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
-      event.preventDefault();
-      const currentIndex = intakeTabs.indexOf(tab);
-      const next = event.key === 'Home' ? 0 : event.key === 'End' ? intakeTabs.length - 1 : (currentIndex + (event.key === 'ArrowRight' ? 1 : intakeTabs.length - 1)) % intakeTabs.length;
-      intakeTabs[next]?.focus();
-      intakeTabs[next]?.click();
-    });
+  const stopCamera=()=>{stream?.getTracks().forEach(track=>track.stop());stream=undefined;if(video)video.srcObject=null;};
+  document.addEventListener('go:intake-panel',event=>{
+    if(event.detail.key==='photos'&&video&&!stream)startCamera();else if(event.detail.key!=='photos')stopCamera();
+    qa('.signature-pad').forEach(resizeSignaturePad);
   });
-  qa('[data-intake-next]').forEach(button => button.addEventListener('click', () => showIntakePanel(button.dataset.intakeNext)));
-
+  document.addEventListener('visibilitychange',()=>{if(document.hidden)stopCamera();else if(video&&!q('#tablet-intake-photos')?.hidden&&!stream)startCamera();});
   const normalizePhoto = async blob => {
-    if (['image/jpeg','image/png'].includes(blob.type)) return blob;
     let source, url;
     try { source = await createImageBitmap(blob); }
     catch { url = URL.createObjectURL(blob); source = await new Promise((resolve,reject)=>{const image=new Image();image.onload=()=>resolve(image);image.onerror=()=>reject(new Error('Il browser non riesce a leggere questa foto. Scegli un’immagine JPEG o PNG.'));image.src=url;}); }
-    const canvas=document.createElement('canvas');canvas.width=source.width||source.naturalWidth;canvas.height=source.height||source.naturalHeight;canvas.getContext('2d').drawImage(source,0,0);source.close?.();if(url)URL.revokeObjectURL(url);
+    const canvas=document.createElement('canvas');const scale=Math.min(1,2560/(source.width||source.naturalWidth),1920/(source.height||source.naturalHeight));canvas.width=Math.round((source.width||source.naturalWidth)*scale);canvas.height=Math.round((source.height||source.naturalHeight)*scale);canvas.getContext('2d').drawImage(source,0,0,canvas.width,canvas.height);source.close?.();if(url)URL.revokeObjectURL(url);
     const converted=await new Promise(resolve=>canvas.toBlob(resolve,'image/jpeg',.9));if(!converted)throw new Error('Conversione della foto non riuscita. Usa un file JPEG o PNG.');return converted;
   };
   const upload = async blob => {
+    if(photoGrid?.dataset.editable!=='true')throw new Error('Accettazione bloccata. Sblocca la fase per aggiungere foto.');
     blob = await normalizePhoto(blob);
     const category = q('#photo-category').value;
     const station = q('#photo-station').value;
     const data = new FormData();
-    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || form?.dataset.csrf || '';
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || photoGrid?.dataset.csrf || form?.dataset.csrf || '';
     data.append('_csrf', csrfToken);
     data.append('category', category); data.append('station', station);
     data.append('damage_marks', JSON.stringify(category === 'exterior' ? marks : []));
     data.append('photo', blob, `go-${station}.jpg`);
     if (status) status.textContent = 'Salvataggio foto…';
-    const response = await fetch(`/tablet/work-orders/${form.dataset.workOrder}/photos`, {
+    const response = await fetch(`/tablet/work-orders/${photoGrid.dataset.order}/photos`, {
       method: 'POST',
       headers: { 'X-CSRF-Token': csrfToken },
       body: data
@@ -235,19 +209,28 @@
     if (!response.ok) throw new Error(result?.error || `Salvataggio foto rifiutato dal server (${response.status}).`);
     if (!result) throw new Error('Il server non ha confermato il salvataggio della foto.');
     if (status) status.textContent = `Foto ${result.label} salvata.`;
-    marks = []; q('#damage-layer')?.replaceChildren();
-    window.location.reload();
+    const item=document.createElement('article');item.className='intake-photo';
+    Object.assign(item.dataset,{photoId:result.id,documentId:result.documentId,category:result.category,station:result.station,label:result.label});
+    const preview=document.createElement('button');preview.type='button';preview.className='intake-photo-preview';preview.dataset.previewPhoto='';preview.setAttribute('aria-label',`Apri foto ${result.label}`);
+    const image=document.createElement('img');image.src=`/tablet/work-orders/${photoGrid.dataset.order}/documents/${result.documentId}`;image.alt=result.label;preview.append(image);
+    const remove=document.createElement('button');remove.type='button';remove.className='intake-photo-delete';remove.dataset.deletePhoto='';remove.setAttribute('aria-label',`Elimina foto ${result.label}`);remove.textContent='×';
+    const label=document.createElement('span');label.textContent=result.label;item.append(preview,remove,label);q('[data-empty-photos]')?.remove();photoGrid.append(item);
+    qa('#damage-layer circle').forEach(dot=>{dot.dataset.savedPhoto=result.id;q('#saved-damage-layer').append(dot);});
+    marks=[];renderNewMarks();document.dispatchEvent(new Event('go:photos-changed'));q('#file-photo').value='';
   };
+  let uploading=false;
+  const savePhoto=async blob=>{if(uploading)return;uploading=true;q('#capture-photo').disabled=true;q('#file-photo').disabled=true;try{await upload(blob);}catch(error){status.textContent=error.message;}finally{uploading=false;const locked=photoGrid?.dataset.editable!=='true';q('#capture-photo').disabled=locked;q('#file-photo').disabled=locked;}};
   q('#capture-photo')?.addEventListener('click', async () => {
     if (!video?.videoWidth) { status.textContent = 'Attiva la fotocamera o scegli un’immagine dal dispositivo.'; return; }
     const canvas = q('#capture-canvas'); canvas.width = video.videoWidth; canvas.height = video.videoHeight;
     canvas.getContext('2d').drawImage(video, 0, 0);
-    canvas.toBlob(blob => blob ? upload(blob).catch(e => { status.textContent = e.message; }) : (status.textContent = 'Acquisizione non riuscita.'), 'image/jpeg', .86);
+    canvas.toBlob(blob => blob ? savePhoto(blob) : (status.textContent = 'Acquisizione non riuscita.'), 'image/jpeg', .86);
   });
-  q('#file-photo')?.addEventListener('change', ev => { const file = ev.target.files?.[0]; if (file) upload(file).catch(e => { status.textContent = e.message; }); });
+  q('#file-photo')?.addEventListener('change', ev => { const file = ev.target.files?.[0]; if (file) savePhoto(file); });
 
   form?.addEventListener('submit', async ev => {
     ev.preventDefault();
+    if(form.dataset.saved==='true')return;
     const statusNode = q('#acceptance-status');
     const terms = q('[data-signature="terms"]'), privacy = q('[data-signature="privacy"]');
     if (!terms?.dataset.signed || !privacy?.dataset.signed) { statusNode.textContent = 'Raccogli entrambe le firme nelle rispettive aree.'; return; }
@@ -270,12 +253,12 @@
       statusNode.textContent = 'Accettazione completata. La scheda veicolo è pronta per la stampa.';
       const actionBar = document.createElement('div'); actionBar.className = 'acceptance-complete-actions';
       const printLink = document.createElement('a'); printLink.className = 'button primary'; printLink.href = result.vehicleSheetUrl; printLink.target = '_blank'; printLink.rel = 'noopener'; printLink.textContent = 'Apri e stampa scheda veicolo';
-      const continueLink = document.createElement('a'); continueLink.className = 'button'; continueLink.href = `/tablet/work-orders/${form.dataset.workOrder}?tab=inspection`; continueLink.textContent = 'Continua a ispezione →';
-      actionBar.append(printLink, continueLink); statusNode.after(actionBar); form.querySelectorAll('input,button,canvas').forEach(field => field.disabled = true);
+      const continueLink = document.createElement('a'); continueLink.className = 'button'; continueLink.href = `/tablet/work-orders/${form.dataset.workOrder}?mode=view&tab=repair`; continueLink.textContent = 'Continua a ispezione →';
+      form.dataset.saved='true';const badge=q('.intake-workspace-head>.badge');if(badge){badge.textContent='Accettazione registrata';badge.className='badge good';}photoGrid.dataset.editable='false';q('[data-intake-workspace]').dataset.editable='false';qa('[data-delete-photo],#capture-photo,#file-photo,[data-undo-damage],[data-clear-damage],[data-client-edit] input,[data-client-edit] button').forEach(control=>control.disabled=true);stopCamera();actionBar.append(printLink, continueLink); statusNode.after(actionBar); form.querySelectorAll('input,button,canvas').forEach(field => field.disabled = true);
     } catch (error) {
       statusNode.textContent = error.message || 'Connessione non disponibile. Verifica la rete e riprova.';
     } finally {
-      if (submitButton) submitButton.disabled = false;
+      if (submitButton) submitButton.disabled = form.dataset.saved==='true';
     }
   });
 
@@ -290,23 +273,5 @@
     if (response.ok) q('#submit-client-consent').disabled = true;
   });
 
-  const viewerButton = q('#view-360');
-  viewerButton?.addEventListener('click', () => {
-    const photos = qa('.intake-photo[data-sequence="true"]')
-      .sort((a, b) => Number(a.dataset.sequenceOrder) - Number(b.dataset.sequenceOrder))
-      .map(a => ({ src: q('img', a).src, label: q('span', a).textContent }));
-    if (photos.length < 8) return;
-    const stage = q('#view360-stage'), slider = q('#view360-slider'), modal = q('#view360-modal');
-    slider.max = String(photos.length - 1);
-    const show = index => {
-      const photo = photos[index];
-      stage.innerHTML = `<img src="${photo.src}" alt="${photo.label}"><strong>Scatto ${index + 1} di ${photos.length} · ${photo.label}</strong>`;
-    };
-    slider.oninput = () => show(Number(slider.value));
-    slider.value = '0';
-    show(0);
-    modal.hidden = false;
-  });
-  q('#close-360')?.addEventListener('click', () => { q('#view360-modal').hidden = true; });
   window.addEventListener('pagehide', () => stream?.getTracks().forEach(track => track.stop()));
 })();

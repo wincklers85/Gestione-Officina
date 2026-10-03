@@ -1,7 +1,8 @@
 // Keep tablet URLs separate while reusing the same permissions, CSRF and workflow locks.
 function tabletActionPath(method, pathname) {
+  if(method==='GET' && /^\/tablet\/work-orders\/\d+\/vehicle-sheet$/.test(pathname)) return pathname.slice('/tablet'.length);
   if (method !== 'POST') return null;
-  if (/^\/tablet\/work-orders\/\d+\/(quality-checks\/setup|road-tests|mark-ready|close-early)$/.test(pathname) ||
+  if (/^\/tablet\/work-orders\/\d+\/(quality-checks\/setup|road-tests|mark-ready|close-early|customer-screen)$/.test(pathname) ||
       /^\/tablet\/quality-checks\/\d+$/.test(pathname)) return pathname.slice('/tablet'.length);
   return null;
 }

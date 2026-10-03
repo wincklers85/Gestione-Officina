@@ -12,6 +12,9 @@ test('le azioni Tablet accettano solo i percorsi previsti e mantengono i ritorni
     assert.equal(tabletActionPath('POST', `/tablet/work-orders/3/${route}`), null);
   }
   assert.equal(tabletActionPath('GET', '/tablet/quality-checks/12'), null);
+  assert.equal(tabletActionPath('GET', '/tablet/work-orders/3/vehicle-sheet'), '/work-orders/3/vehicle-sheet');
+  assert.equal(tabletActionPath('POST', '/tablet/work-orders/3/customer-screen'), '/work-orders/3/customer-screen');
+  assert.equal(tabletActionPath('GET', '/tablet/work-orders/3/acceptance'), null);
   assert.equal(tabletActionRedirect('/work-orders/3?tab=quality', ''), '/tablet/work-orders/3?mode=view&tab=quality');
   assert.equal(tabletActionRedirect('/work-orders/3', '/work-orders/3/road-tests'), '/tablet/work-orders/3?mode=view&tab=road-test');
   assert.equal(tabletActionRedirect('https://example.test/work-orders/3', ''), 'https://example.test/work-orders/3');

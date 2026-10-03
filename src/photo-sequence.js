@@ -3,7 +3,7 @@ const MIN_SEQUENCE_PHOTOS = EXTERIOR_STATIONS.length;
 const MAX_SEQUENCE_PHOTOS = 10;
 
 function selectExteriorSequence(photos) {
-  const exterior = (photos || []).filter(photo => photo.category === 'exterior');
+  const exterior = (photos || []).filter(photo => photo.category === 'exterior' && EXTERIOR_STATIONS.includes(photo.station));
   const byStation = new Map();
   for (const photo of exterior) {
     if (!byStation.has(photo.station)) byStation.set(photo.station, []);
@@ -21,6 +21,7 @@ function selectExteriorSequence(photos) {
 
   return {
     photos: selected,
+    stitchPhotos: [...selected].sort((a,b)=>EXTERIOR_STATIONS.indexOf(a.station)-EXTERIOR_STATIONS.indexOf(b.station)),
     complete: EXTERIOR_STATIONS.every(station => byStation.has(station)),
     coveredStations: EXTERIOR_STATIONS.filter(station => byStation.has(station)).length,
     exteriorCount: exterior.length,

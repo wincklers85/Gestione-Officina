@@ -1,0 +1,34 @@
+const fs=require('node:fs'),vm=require('node:vm'),path=require('node:path'),crypto=require('node:crypto');
+const express=require('express'),multer=require('multer'),{PGlite}=require('@electric-sql/pglite');
+const {advanceWorkflow,initializeWorkflow}=require('../../src/work-order-workflow');
+const {renderIntakePage}=require('../../src/intake-page'),{renderVehicleDiagram}=require('../../src/vehicle-diagram'),{registerPanoramaRoutes}=require('../../src/intake-panorama');
+const {tabletActionPath,tabletActionRedirect}=require('../../src/tablet-actions'),{selectExteriorSequence}=require('../../src/photo-sequence');
+async function createIntakeApp(){
+ const db=new PGlite();await db.exec("SELECT set_config('app.platform_admin','true',false),set_config('app.workshop_id','1',false)");await db.exec(fs.readFileSync('src/schema.sql','utf8'));
+ const query=async(sql,args)=>{const r=await db.query(sql,args);return {...r,rowCount:r.rows.length||r.affectedRows||0,rows:r.rows.map(row=>Object.fromEntries(Object.entries(row).map(([k,v])=>[k,v instanceof Uint8Array?Buffer.from(v):v])))};};
+ const pool={query,connect:async()=>({query,release(){}})};
+ const users={};for(const role of ['manager','mechanic','accountant'])users[role]=(await query('INSERT INTO users(name,email,password_hash,role) VALUES($1,$2,\'hash\',$3) RETURNING id',[role,`${role}@fixture.test`,role])).rows[0].id;
+ const customer=(await query("INSERT INTO customers(name,phone,email) VALUES('Cliente prova','3331234567','cliente@example.test') RETURNING id")).rows[0].id;
+ const vehicle=(await query("INSERT INTO vehicles(customer_id,plate,make,model) VALUES($1,'AA123BB','GO','Berlina') RETURNING id",[customer])).rows[0].id;
+ const order=(await query("INSERT INTO work_orders(customer_id,vehicle_id,complaint,mileage_in) VALUES($1,$2,'Rumore anteriore in marcia',82000) RETURNING id",[customer,vehicle])).rows[0].id;
+ await initializeWorkflow(pool,order,users.manager,{intakePending:true});
+ await query('UPDATE workshop_settings SET labs_3d_enabled=true WHERE id=1');
+ const app=express();app.use(express.static('public'));app.use('/assets',express.static('assets'));app.use(express.urlencoded({extended:false,limit:'2mb'}));
+ app.use((req,res,next)=>{const role=req.get('X-Role')||'manager';req.session={csrf:'test-token',user:{id:users[role],name:role,role,csrfToken:'test-token',workshopId:1,interfaceMode:req.get('X-Mode')||'tablet'}};next();});
+ const allow=(...roles)=>(req,res,next)=>roles.includes(req.session.user.role)?next():res.sendStatus(403),needAuth=(req,res,next)=>next();
+ const context=vm.createContext({app,pool,multer,Buffer,crypto,console,require,path,__dirname:path.resolve('src'),renderIntakePage,renderVehicleDiagram,registerPanoramaRoutes,tabletActionPath,tabletActionRedirect,selectExteriorSequence,needAuth,allow,advanceWorkflow,appVersion:'0.24.0',releases:[{title:'0.24.0',changes:[]}],softwareHouse:'GO',softwareHouseUrl:'https://example.test'});
+ const source=fs.readFileSync('src/server.js','utf8');
+ const run=(start,end)=>{const a=source.indexOf(start),b=source.indexOf(end,a);if(a<0||b<0)throw new Error('Missing fixture boundary: '+start+' / '+end);return vm.runInContext(source.slice(a,b),context);};
+ run('const esc =','const statuses =');run('function page(','function formToken(');run('function flash(','function drawWorkshopLogo');
+ vm.runInContext("function formToken(){return '<input type=\"hidden\" name=\"_csrf\" value=\"test-token\">';}",context);
+ run('app.use((req,res,next)=>{const user=req.session.user;if(!user)return next();if(!user.interfaceMode)','app.use((req,res,next)=>tenantContext.run');
+ run("app.use((req, res, next) => {\n  if (req.method",'function page(');
+ run('const intakeStations=','app.post(\'/tablet/work-orders/:id/updates\'');
+ run("app.get('/tablet/work-orders/:id/acceptance',","app.post('/tablet/work-orders/:id/photo-report',");
+ run("app.post('/tablet/work-orders/:id/customer',","app.post('/work-orders/:id/customer-screen',");
+ run("app.get('/work-orders/:id/vehicle-sheet',","app.get('/tablet/work-orders/:id/acceptance.pdf',");
+ const documentLine=source.split('\n').find(line=>line.startsWith("app.get('/tablet/work-orders/:id/documents/:docid'"));vm.runInContext(documentLine,context);
+ app.use((error,req,res,next)=>res.status(500).json({error:error.message}));
+ return {app,db,pool,order,users,context};
+}
+module.exports={createIntakeApp};
