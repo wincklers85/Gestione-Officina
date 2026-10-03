@@ -1,3 +1,13 @@
+## 0.24.0 — 03/10/2026
+
+- Sagoma originale a cinque viste, ispirata al riferimento dell’officina, condivisa tra accettazione touch e scheda veicolo A4. I segni salvati restano associati alle fotografie, compresi quelli acquisiti con la vecchia sagoma.
+- Accettazione suddivisa in sagoma/scatto, galleria paginata, dati cliente, consensi/firme guidati e Labs. Salvataggio foto e dati cliente senza ricaricare la pagina; firme conservate tra passaggi e cambi di scheda.
+- Cucitura locale delle foto in un Web Worker: dettagli comuni, descrittori binari, corrispondenze reciproche, consenso robusto sugli spostamenti, percorso di giunzione a costo minimo e maschere sfumate. Verificata anche la chiusura ultima-prima.
+- Texture avvolta su un vero cilindro WebGL ruotabile con trascinamento e cursore. Anteprima della maschera e correzione manuale di sovrapposizione/dislivello per ogni giunzione; nessuna dipendenza o servizio aggiuntivo a pagamento.
+- Le giunzioni prive di corrispondenze sono indicate come da correggere. La vista cilindrica non costituisce una ricostruzione metrica: scatti da prospettive diverse, riflessi o parti senza sovrapposizione non garantiscono una cucitura continua.
+- Texture e maschera archiviate insieme ai riferimenti alle foto originali, senza modificare le evidenze dell’accettazione. Le viste obsolete vengono ricreate quando cambia la selezione foto.
+- Salvataggi foto e firme atomici, ricontrollo del blocco, completamento della fase Accettazione con apertura di Ispezione. Consensi email verificati anche sul server; scheda stampabile e schermo cliente accessibili dai percorsi Tablet.
+
 ## 0.23.0 — 02/10/2026
 
 - La scheda veicolo Tablet usa pannelli distinti per riepilogo, lavorazioni e timer, collaudo, note tecniche, richieste ricambi e storico; i responsabili trovano anche test e riconsegna.

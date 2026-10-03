@@ -18,4 +18,6 @@ test('the Labs photo sequence needs all eight exterior stations and never exceed
   assert.equal(sequence.photos.length, MAX_SEQUENCE_PHOTOS);
   assert.ok(sequence.photos.every(photo => photo.category === 'exterior'));
   assert.deepEqual(sequence.photos.slice(0, 8).map(photo => photo.station), EXTERIOR_STATIONS);
+  assert.ok(sequence.stitchPhotos.every((photo,i,list)=>i===0||EXTERIOR_STATIONS.indexOf(photo.station)>=EXTERIOR_STATIONS.indexOf(list[i-1].station)),'gli scatti extra restano vicino alla propria posizione, prima della cucitura');
+  assert.equal(selectExteriorSequence([...photos,{id:'unknown',category:'exterior',station:'unknown'}]).exteriorCount,32);
 });
