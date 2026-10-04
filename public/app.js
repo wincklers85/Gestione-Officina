@@ -107,7 +107,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   }
   let notificationDialog=null,notificationIds=[];
   const checkNotifications=async()=>{
-    if(!document.querySelector('meta[name="csrf-token"]'))return;
+    if(!interfaceMode||!document.querySelector('meta[name="csrf-token"]')?.content)return;
     try{
       const response=await fetch('/api/notifications',{cache:'no-store'});
       if(!response.ok)return;

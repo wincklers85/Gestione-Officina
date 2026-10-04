@@ -2,6 +2,7 @@
 
 - Avvio timer, affiancamento, subentro e completamento acquisiscono prima il blocco dell’ordine e ricontrollano la fase dentro la transazione; una fase bloccata non può essere aggirata dal Tablet.
 - Recupero dei timer dopo interruzioni: chiusura calcolata sul giorno di avvio e sul fuso Europe/Rome, pause limitate al tempo reale e notifiche/registro creati una sola volta anche per timer recuperati giorni dopo.
+- Accesso PC, Tablet e superuser: la sessione viene salvata prima del reindirizzamento, evitando disconnessioni quando il database è lento; nessuna richiesta di notifiche dalle pagine anonime.
 - Notifiche, conferma di lettura, logo dell’officina e feedback utilizzabili dal Tablet mantenendo separate le pagine del gestionale PC.
 - Modifiche al collaudo riservate ai meccanici assegnati; completare la diagnosi non porta prematuramente il lavoro al collaudo.
 - Incassi dei documenti di chiusura anticipata registrabili anche con le fasi del lavoro già chiuse, senza riaprire la consegna.
@@ -10,6 +11,7 @@
 - Approvazione tramite link cliente: contesto officina ricavato dal token, stesse riserve ricambi dell’approvazione dal PC, controllo della fase e decisione monouso senza anticipare lo stato del lavoro. Logo dello schermo cliente limitato all’officina del token.
 - Suite browser ripetibile su applicazione completa, sessioni reali e policy RLS: percorso PC/Tablet, due meccanici, subentro, timer simultanei, ricambi, collaudo facoltativo/completo, incassi parziali, chiusura anticipata, riapertura, isolamento officine, scadenza sessione, layout e firme con interruzione di rete.
 - GitHub Actions esegue anche i controlli browser su PostgreSQL temporaneo con ruolo applicativo senza privilegi superuser. Playwright è una dipendenza di sviluppo; nessun servizio o modulo a pagamento aggiunto.
+
 ## 0.24.0 — 03/10/2026
 
 - Sagoma originale a cinque viste, ispirata al riferimento dell’officina, condivisa tra accettazione touch e scheda veicolo A4. I segni salvati restano associati alle fotografie, compresi quelli acquisiti con la vecchia sagoma.

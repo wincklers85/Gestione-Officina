@@ -12,6 +12,7 @@ async function login(page,f,role='manager') {
   await page.locator('[name="email"]').fill(role+'@go.test');
   await page.locator('[name="password"]').fill(f.password);
   await Promise.all([page.waitForURL(role.startsWith('mechanic')?'**/tablet':'**/'),page.locator('form button[type="submit"],form button.button.primary').first().click()]);
+  await expect(page.locator('body')).toHaveAttribute('data-interface-mode',role.startsWith('mechanic')?'tablet':'pc');
   await dismiss(page);
 }
 async function post(page,path,values={}) {
@@ -26,6 +27,22 @@ async function stage(f,o,phase,status) {
 }
 const orderStatus=async(f,id)=>(await f.query('SELECT status FROM work_orders WHERE id=$1',[id])).rows[0].status;
 const activeTimers=async(f,id)=>(await f.query('SELECT * FROM time_entries WHERE operation_id=$1 AND stopped_at IS NULL',[id])).rows;
+
+test('accesso PC e Tablet attende il salvataggio della sessione anche con database lento',async({page,browser,workshop:f})=>{
+  const query=f.application.pool.query.bind(f.application.pool);
+  f.application.pool.query=async(sql,args)=>{
+    if(/^INSERT INTO .*user_sessions/.test(sql)&&args?.[0]?.user)await new Promise(resolve=>setTimeout(resolve,350));
+    return query(sql,args);
+  };
+  await login(page,f,'owner');
+  await page.goto('/settings');await expect(page).toHaveURL(/\/settings$/);
+  const context=await browser.newContext({baseURL:f.url});
+  try {
+    const tablet=await context.newPage();await login(tablet,f,'mechanic');
+    await tablet.goto('/settings');await expect(tablet).toHaveURL(/\/tablet$/);
+    expect((await tablet.request.get('/api/presence')).status()).toBe(200);
+  } finally {await context.close();}
+});
 
 test('percorso PC e Tablet: accettazione, preventivo, ricambi, due meccanici, saldo e consegna senza collaudo obbligatorio',async({page,browser,workshop:f})=>{
   const o=await f.order();
