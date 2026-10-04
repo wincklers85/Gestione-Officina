@@ -267,10 +267,18 @@
     const statusNode = q('#client-status'), terms = q('[data-signature="terms"]'), privacy = q('[data-signature="privacy"]');
     if (!q('#client-terms').checked || !q('#client-privacy').checked || !terms?.dataset.signed || !privacy?.dataset.signed || !q('#client-name').value.trim()) { statusNode.textContent = 'Leggi e conferma i documenti, completa entrambe le firme e inserisci il nome.'; return; }
     const body = new URLSearchParams({ _csrf: screen.dataset.csrf, signed_name: q('#client-name').value, terms_accepted: 'true', privacy_acknowledged: 'true', road_test_authorized: String(q('#client-road').checked), repair_email_consent: String(q('#client-email').checked), marketing_consent: String(q('#client-marketing').checked), profiling_consent: String(q('#client-profiling').checked), terms_signature: terms.toDataURL('image/png'), privacy_signature: privacy.toDataURL('image/png') });
+    const button=q('#submit-client-consent');if(button.disabled)return;button.disabled=true;
     statusNode.textContent = 'Invio delle scelte…';
-    const response = await fetch(`/customer-screen/${screen.dataset.token}/acceptance`, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body });
-    const result = await response.json(); statusNode.textContent = result.message || result.error;
-    if (response.ok) q('#submit-client-consent').disabled = true;
+    let saved=false;
+    try {
+      const response=await fetch(`/customer-screen/${screen.dataset.token}/acceptance`,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body});
+      let result;try{result=await response.json();}catch{throw new Error('Il server non ha confermato il salvataggio. Riprova.');}
+      statusNode.textContent=result.message||result.error||'Salvataggio non riuscito.';
+      saved=response.ok;
+      if(saved)screen.querySelectorAll('input,canvas,.clear-signature').forEach(control=>control.disabled=true);
+    } catch(error) {statusNode.textContent='Invio non riuscito. Le firme sono conservate su questa pagina: verifica la connessione e riprova.';}
+    finally {button.disabled=saved;}
+
   });
 
   window.addEventListener('pagehide', () => stream?.getTracks().forEach(track => track.stop()));
