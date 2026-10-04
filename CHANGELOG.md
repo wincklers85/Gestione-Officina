@@ -1,5 +1,3 @@
-## 0.24.0 — 03/10/2026
-
 ## 0.25.0 — 2026-10-04
 
 - Avvio timer, affiancamento, subentro e completamento acquisiscono prima il blocco dell’ordine e ricontrollano la fase dentro la transazione; una fase bloccata non può essere aggirata dal Tablet.
@@ -12,7 +10,7 @@
 - Approvazione tramite link cliente: contesto officina ricavato dal token, stesse riserve ricambi dell’approvazione dal PC, controllo della fase e decisione monouso senza anticipare lo stato del lavoro. Logo dello schermo cliente limitato all’officina del token.
 - Suite browser ripetibile su applicazione completa, sessioni reali e policy RLS: percorso PC/Tablet, due meccanici, subentro, timer simultanei, ricambi, collaudo facoltativo/completo, incassi parziali, chiusura anticipata, riapertura, isolamento officine, scadenza sessione, layout e firme con interruzione di rete.
 - GitHub Actions esegue anche i controlli browser su PostgreSQL temporaneo con ruolo applicativo senza privilegi superuser. Playwright è una dipendenza di sviluppo; nessun servizio o modulo a pagamento aggiunto.
-
+## 0.24.0 — 03/10/2026
 
 - Sagoma originale a cinque viste, ispirata al riferimento dell’officina, condivisa tra accettazione touch e scheda veicolo A4. I segni salvati restano associati alle fotografie, compresi quelli acquisiti con la vecchia sagoma.
 - Accettazione suddivisa in sagoma/scatto, galleria paginata, dati cliente, consensi/firme guidati e Labs. Salvataggio foto e dati cliente senza ricaricare la pagina; firme conservate tra passaggi e cambi di scheda.
