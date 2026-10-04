@@ -28,7 +28,20 @@ async function createDatabase() {
     // pg's query implementation uses its callback overload of connect; use an
     // explicit lease so this adapter follows the application's Promise contract.
     base.query = async (...args) => { const c = await base.connect(); try { return await c.query(...args); } finally { c.release(); } };
-    dispose = async () => { await base.end(); await admin.end(); await root.query(`DROP DATABASE ${name} WITH (FORCE)`); await root.query(`DROP ROLE ${role}`); await root.end(); };
+    dispose = async () => {
+      await base.end(); await admin.end();
+      // Pool.end() releases its clients before PostgreSQL necessarily processes
+      // their Terminate messages. FORCE can kill those closing connections and
+      // report an unrelated pool error after a successful browser scenario.
+      const deadline = Date.now() + 5000;
+      while (Number((await root.query('SELECT count(*) AS n FROM pg_stat_activity WHERE datname=$1', [name])).rows[0].n)) {
+        if (Date.now() >= deadline) throw new Error(`Connessioni di prova non chiuse: ${name}`);
+        await new Promise(resolve => setTimeout(resolve, 25));
+      }
+      await root.query(`DROP DATABASE ${name}`);
+      await root.query(`DROP ROLE ${role}`);
+      await root.end();
+    };
     base.fixtureRole = role;
   } else {
     const db = new PGlite();
