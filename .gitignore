@@ -4,3 +4,5 @@ node_modules/
 coverage/
 uploads/
 *.log
+test-results/
+playwright-report/

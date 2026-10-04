@@ -1,6 +1,6 @@
 {
   "name": "go-gestione-officina",
-  "version": "0.24.0",
+  "version": "0.25.0",
   "private": true,
   "description": "Gestionale web per officina meccanica, predisposto per Render e PostgreSQL.",
   "engines": {
@@ -11,8 +11,9 @@
     "migrate": "node src/migrate.js",
     "admin:create": "node scripts/create-admin.js",
     "superuser:create": "node scripts/create-superuser.js",
-    "check": "node --check src/server.js && node --check src/intake-search.js && node --check public/intake-wizard.js && node --check public/customer-duplicates.js && node --check public/intake.js && node --check public/app.js && node --check public/work-order-gallery.js && node --check src/migrate.js && node --check src/timezone.js && node --check src/work-hours.js && node --check src/repair-readiness.js && node --check src/work-order-workflow.js && node --check src/work-order-closeout.js && node --check src/portal-documents.js && node --check src/inventory-billing.js && node --check src/photo-sequence.js && node --check src/warranties.js && node --check src/supplier-returns.js && node --check scripts/create-admin.js && node --check scripts/create-superuser.js && node --check test/database.test.js && node --check test/photo-sequence.test.js && node --check test/timezone.test.js && node --check test/work-hours.test.js && node --check test/repair-readiness.test.js && node --check test/work-order-workflow.test.js && node --check test/work-order-closeout.test.js && node --check test/warranties.test.js && node --check test/supplier-returns.test.js && node --check test/invoice-payment.test.js && node --check src/tablet-actions.js && node --check src/tablet-workspace.js && node --check public/tablet-workspace.js && node --check src/intake-page.js && node --check src/vehicle-diagram.js && node --check src/intake-panorama.js && node --check public/intake-workspace.js && node --check public/intake-panorama.js && node --check public/photo-stitch-core.js && node --check public/photo-stitch-worker.js",
-    "test": "node --test test/*.test.js"
+    "check": "node --check src/server.js && node --check src/intake-search.js && node --check public/intake-wizard.js && node --check public/customer-duplicates.js && node --check public/intake.js && node --check public/app.js && node --check public/work-order-gallery.js && node --check src/migrate.js && node --check src/timezone.js && node --check src/work-hours.js && node --check src/repair-readiness.js && node --check src/work-order-workflow.js && node --check src/work-order-closeout.js && node --check src/portal-documents.js && node --check src/inventory-billing.js && node --check src/photo-sequence.js && node --check src/warranties.js && node --check src/supplier-returns.js && node --check scripts/create-admin.js && node --check scripts/create-superuser.js && node --check test/database.test.js && node --check test/photo-sequence.test.js && node --check test/timezone.test.js && node --check test/work-hours.test.js && node --check test/repair-readiness.test.js && node --check test/work-order-workflow.test.js && node --check test/work-order-closeout.test.js && node --check test/warranties.test.js && node --check test/supplier-returns.test.js && node --check test/invoice-payment.test.js && node --check src/tablet-actions.js && node --check src/tablet-workspace.js && node --check public/tablet-workspace.js && node --check src/intake-page.js && node --check src/vehicle-diagram.js && node --check src/intake-panorama.js && node --check public/intake-workspace.js && node --check public/intake-panorama.js && node --check public/photo-stitch-core.js && node --check public/photo-stitch-worker.js && node --check src/timer-safety.js && node --check test/fixtures/application.cjs && node --check playwright.config.cjs && node --check test/e2e/workshop.spec.cjs && node --check src/estimate-decision.js",
+    "test": "node --test test/*.test.js",
+    "test:e2e": "playwright test --config=playwright.config.cjs"
   },
   "dependencies": {
     "bcryptjs": "^3.0.2",
@@ -27,6 +28,7 @@
     "qrcode": "^1.5.4"
   },
   "devDependencies": {
-    "@electric-sql/pglite": "^0.5.8"
+    "@electric-sql/pglite": "^0.5.8",
+    "@playwright/test": "^1.63.0"
   }
 }

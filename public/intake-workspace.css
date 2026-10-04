@@ -19,3 +19,7 @@ body:has([data-intake-workspace]) .shell-tablet{display:block;width:100%;height:
 
 .intake-panorama-dialog label:has([data-show-mask]){display:flex;gap:8px;align-items:center}.intake-panorama-dialog [data-show-mask]{width:22px;height:22px;min-height:0;padding:0;margin:0;accent-color:#ef6b22}
 .intake-workspace:has(>.notice){grid-template-rows:auto auto auto minmax(0,1fr)}.intake-workspace>.notice{margin:0;padding:7px 12px;font-size:13px}
+
+body:has([data-intake-workspace]){height:100dvh;display:flex;flex-direction:column;overflow:hidden}
+body:has([data-intake-workspace]) .shell-mechanic,body:has([data-intake-workspace]) .shell-tablet{display:flex;flex-direction:column;flex:1;min-height:0;height:auto;overflow:hidden}
+body:has([data-intake-workspace]) main.main{flex:1;min-height:0;height:auto!important}

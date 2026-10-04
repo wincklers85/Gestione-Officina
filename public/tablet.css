@@ -149,7 +149,7 @@
 .tablet-progress-heading,.tablet-section-heading{display:flex;align-items:center;justify-content:space-between;gap:14px}
 .tablet-progress-heading h2,.tablet-section-heading h2{margin:5px 0 0;font-size:21px;letter-spacing:-.025em}
 .tablet-progress-count,.tablet-count{display:inline-flex;align-items:center;justify-content:center;min-height:34px;padding:5px 11px;border-radius:999px;background:#eef2f6;color:#405268;font-size:13px;font-weight:750;white-space:nowrap}
-.tablet-progress-track{height:7px;margin:17px 0 20px;overflow:hidden;border-radius:99px;background:#edf1f4}
+.tablet-progress-track{display:block;width:100%;appearance:none;border:0;height:7px;margin:17px 0 20px;overflow:hidden;border-radius:99px;background:#edf1f4}
 .tablet-progress-track span{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,#ed6a22,#ff9b53);transition:width .25s ease}
 .tablet-stepper{display:flex;gap:0;margin:0;padding:0;overflow-x:auto;list-style:none;scrollbar-width:thin}
 .tablet-stepper li{position:relative;display:flex;flex:1 0 112px;flex-direction:column;align-items:center;gap:8px;min-width:0;padding:0 8px;color:#7b8795;text-align:center;font-size:12px;font-weight:650}
@@ -338,3 +338,5 @@ body:has([data-tablet-workspace]) .tablet-app-tab img{width:22px;height:22px}
  .tablet-work-panel .card{padding:10px!important}
  .tablet-work-panel .tablet-road-test-form .form-grid{grid-template-columns:1fr}
 }
+
+.tablet-progress-track::-webkit-progress-bar{background:#edf1f4;border-radius:99px}.tablet-progress-track::-webkit-progress-value{background:linear-gradient(90deg,#ed6a22,#ff9b53);border-radius:99px}.tablet-progress-track::-moz-progress-bar{background:#ed6a22;border-radius:99px}
